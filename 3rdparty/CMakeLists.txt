@@ -1,0 +1,7 @@
+file(GLOB dirs LIST_DIRECTORIES true "*")
+foreach(dir ${dirs})
+  if(IS_DIRECTORY ${dir})
+    message(STATUS "Connect: ${dir}")
+    add_subdirectory(${dir} EXCLUDE_FROM_ALL)
+  endif()
+endforeach()

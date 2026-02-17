@@ -1,0 +1,5 @@
+set(projlibs tstack tqueue tarith)
+foreach(projlib IN LISTS projlibs)
+  add_library(${projlib} STATIC ${projlib}.cpp "${ARITHS_INCLUDE}/${projlib}.h")
+endforeach()
+target_link_libraries(tarith tstack tqueue)

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.31)
+file(GLOB srcs "*.cpp")
+add_executable(mtest ${srcs})
+target_link_libraries(mtest tstack tqueue tarith gtest)
+add_test(NAME TestAllThings COMMAND mtest)
