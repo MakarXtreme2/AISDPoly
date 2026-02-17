@@ -11,6 +11,9 @@ using namespace std;
 typedef void(*TFunc)();
 typedef void (*CFunc)(char);
 typedef function<void(char)> SCFunc;
+typedef function<void(Lexeme<int>)> STFunc;
+
+// Class Exception for calling exceptions from arithmetic expressions
 
 class Exception {
   string message;
@@ -21,6 +24,8 @@ public:
   size_t &GetPos() { return pos; }
 };
 
+// Type of lexem
+
 enum LexemeType {
   number,
   single_operation,
@@ -29,12 +34,15 @@ enum LexemeType {
   word
 };
 
+// Structure TPair is used for making state machine 
 
 template <typename T>
 struct TPair {
   size_t NextState = 0;
   T Function = nullptr;
 };
+
+// Class that contains table of machine
 
 template <typename T>
 class TuringMachine {
@@ -110,6 +118,8 @@ public:
 
 };
 
+// Structure for lexem description
+
 template <typename T>
 struct Lexeme {
   string Text;
@@ -118,7 +128,7 @@ struct Lexeme {
   int Priority;
 };
 
-typedef function<void(Lexeme<int>)> STFunc;
+// Parent Class for arith. Only for making dependencies between arith and handlers
 
 class TMaker {
 protected:
@@ -140,6 +150,8 @@ public:
   int& GetResult() { return result; }
 };
 
+// Just class interface for handlers
+
 class IHandler {
 protected:
   TMaker *tarith;
@@ -152,6 +164,8 @@ protected:
 public:
   virtual void Do() = 0;
 };
+
+// Class arith that realises work of arithmetic expressions
 
 class TArith : public TMaker {
   IHandler **handlers;
@@ -180,6 +194,8 @@ public:
     return *this;
   }
 };
+
+// Lexeme Translator that translate symbols to lexems. But this class don't define binary and singular operations
 
 class ILexemeTranslator : public IHandler {
   TuringMachine<SCFunc> turm;
@@ -211,6 +227,8 @@ public:
   void Do();
 
 };
+
+// Class that checks correctness of arithmetic expressions
 
 class ICorrectChecker : public IHandler {
   size_t pos;
@@ -275,6 +293,8 @@ public:
   void Do();
 };
 
+// Class that makes postfix view of arithmetic expressions
+
 class IPostfixMaker : public IHandler {
 public:
   IPostfixMaker(TArith &_tarith) {
@@ -282,6 +302,8 @@ public:
   }
   void Do();
 };
+
+// Class that counts arithmetic expression
 
 class ICounter : public IHandler {
 public:
