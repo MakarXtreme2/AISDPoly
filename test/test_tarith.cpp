@@ -81,9 +81,9 @@ TEST(TuringMachine, turing_machine_can_assign) {
 
 TEST(ILexemeTranslator, ilexemetranslator_work_correct) {
   string str = "254 + 23/9 + (12 - 76)";
-  TArith arth(str);
-  ILexemeTranslator hand1(arth);
-  ICorrectChecker hand2(arth);
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ICorrectChecker<int> hand2(arth);
   arth.AddHandler(hand1);
   arth.LaunchHandler(0);
   TDynamicQueue<Lexeme<int>> qe = arth.LexemsStreamInt();
@@ -111,9 +111,9 @@ TEST(ILexemeTranslator, ilexemetranslator_work_correct) {
 }
 
 TEST(ICorrectChecker, icorrectchecker_work_correct) {
-  TArith arth("28");
-  ILexemeTranslator hand1(arth);
-  ICorrectChecker hand2(arth);
+  TArith<int> arth("28");
+  ILexemeTranslator<int> hand1(arth);
+  ICorrectChecker<int> hand2(arth);
   arth.AddHandler(hand1);
   arth.AddHandler(hand2);
   ASSERT_NO_THROW(arth.LaunchAllHandlers());
@@ -146,10 +146,10 @@ TEST(ICorrectChecker, icorrectchecker_work_correct) {
 }
 
 TEST(IPostfixMaker, ipostfixmaker_work_correct) {
-  TArith arth("28 + 5 * 9 + (20 / 3 + 5 * 1)");
-  ILexemeTranslator hand1(arth);
-  ICorrectChecker hand2(arth);
-  IPostfixMaker hand3(arth);
+  TArith<int> arth("28 + 5 * 9 + (20 / 3 + 5 * 1)");
+  ILexemeTranslator<int> hand1(arth);
+  ICorrectChecker<int> hand2(arth);
+  IPostfixMaker<int> hand3(arth);
   arth.AddHandler(hand1);
   arth.AddHandler(hand2);
   arth.AddHandler(hand3);
@@ -161,11 +161,11 @@ TEST(IPostfixMaker, ipostfixmaker_work_correct) {
 }
 
 TEST(ICounter, icounter_work_correct) {
-  TArith arth("10 / 2 + 6 * (20 - 3)");
-  ILexemeTranslator hand1(arth);
-  ICorrectChecker hand2(arth);
-  IPostfixMaker hand3(arth);
-  ICounter hand4(arth);
+  TArith<int> arth("10 / 2 + 6 * (20 - 3)");
+  ILexemeTranslator<int> hand1(arth);
+  ICorrectChecker<int> hand2(arth);
+  IPostfixMaker<int> hand3(arth);
+  ICounter<int> hand4(arth);
   arth.AddHandler(hand1);
   arth.AddHandler(hand2);
   arth.AddHandler(hand3);

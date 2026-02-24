@@ -10,7 +10,13 @@ class TDynamicStack {
   size_t sz;
   size_t curr;
 
-  void changeSize();
+  void changeSize() {
+    TDynamicStack<T> tmp(sz + 1);
+    for (size_t i = 0; i < sz; i++)
+      tmp.arr[i] = arr[i];
+    swap(arr, tmp.arr);
+    sz++;
+  }
 
 public:
 
@@ -26,10 +32,30 @@ public:
 
   size_t Size() { return curr + 1; }
 
-  T Top();
-  void Pop();
-  void Push(T elem);
-  bool isEmpty();
-  bool isFull();
+  T Top() {
+    if (isEmpty())
+      throw out_of_range("Stack is Empty");
+    return arr[curr];
+  }
+
+  void Pop() {
+    if (isEmpty())
+      throw out_of_range("Stack is Empty");
+    curr--;
+  }
+
+  void Push(T elem) {
+    if (curr == MAXSTACK)
+      throw out_of_range("Stack can't be extended");
+    if (isFull())
+      changeSize();
+    arr[++curr] = elem;
+  }
+
+  bool isEmpty() { return curr == -1; }
+
+  bool isFull() {
+    return curr == sz - 1;
+  }
 
 };

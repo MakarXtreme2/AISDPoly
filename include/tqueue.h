@@ -12,7 +12,16 @@ class TDynamicQueue {
 
   size_t Next(size_t i) { return (i + 1) % sz; }
 
-  void changeSize();
+  void changeSize() {
+    TDynamicQueue<T> tmp(sz + 1);
+    int j = 0;
+    for (size_t i = st; i != Next(fin); i = Next(i))
+      tmp.arr[j++] = arr[i];
+    swap(arr, tmp.arr);
+    st = 0;
+      fin = sz - 2;
+    sz++;
+  }
 
 public:
 
@@ -60,10 +69,31 @@ public:
     }
   }
 
-  T Top();
-  void Pop();
-  void Push(T elem);
-  bool isEmpty();
-  bool isFull();
+  T Top() {
+    if (isEmpty())
+      throw out_of_range("Queue is Empty");
+    return arr[st];
+  }
+
+  void Pop() {
+    if (isEmpty())
+      throw out_of_range("Queue is Empty");
+    st = Next(st);
+  }
+
+  void Push(T elem) {
+    if (sz == MAXQUEUE)
+      throw out_of_range("Max size");
+    if (isFull())
+      changeSize();
+    fin = Next(fin);
+    arr[fin] = elem;
+  }
+
+  bool isEmpty() { return st == Next(fin); }
+
+  bool isFull() {
+    return st == Next(Next(fin));
+  }
 
 };
