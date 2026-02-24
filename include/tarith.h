@@ -11,7 +11,6 @@ using namespace std;
 typedef void(*TFunc)();
 typedef void (*CFunc)(char);
 typedef function<void(char)> SCFunc;
-typedef function<void(Lexeme<int>)> STFunc;
 
 // Class Exception for calling exceptions from arithmetic expressions
 
@@ -127,6 +126,8 @@ struct Lexeme {
   LexemeType Type;
   int Priority;
 };
+
+typedef function<void(Lexeme<int>)> STFunc;
 
 // Parent Class for arith. Only for making dependencies between arith and handlers
 

@@ -6,7 +6,6 @@
 #include <string>
 #include <iostream>
 
-
 size_t ILexemeTranslator::Decode(char ch) {
   if (ch >= '0' && ch <= '9')
     return 0;
