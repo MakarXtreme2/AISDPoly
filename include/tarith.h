@@ -131,13 +131,14 @@ typedef function<void(Lexeme<int>)> STFunc;
 
 // Parent Class for arith. Only for making dependencies between arith and handlers
 
+template <typename T>
 class TMaker {
 protected:
   int result;
   string inf_str;
   string postfix_str;
-  TDynamicQueue<Lexeme<int>> lexems_stream_int;
-  TDynamicQueue<Lexeme<int>> lexems_postfix_int;
+  TDynamicQueue<T> lexems_stream_int;
+  TDynamicQueue<T> lexems_postfix_int;
   friend class IHandler;
 public:
   TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size) {
@@ -146,16 +147,17 @@ public:
   }
   string InfStr() { return inf_str; }
   string PostFixStr() { return postfix_str; }
-  TDynamicQueue<Lexeme<int>> LexemsStreamInt() { return lexems_stream_int; }
-  TDynamicQueue<Lexeme<int>> LexemsPostfixInt() { return lexems_postfix_int; }
+  TDynamicQueue<T> LexemsStreamInt() { return lexems_stream_int; }
+  TDynamicQueue<T> LexemsPostfixInt() { return lexems_postfix_int; }
   int& GetResult() { return result; }
 };
 
 // Just class interface for handlers
 
+template <typename T>
 class IHandler {
 protected:
-  TMaker *tarith;
+  TMaker<T> *tarith;
   string &inf_str() { return tarith->inf_str; }
   string &postfix_str() { return tarith->postfix_str; }
   TDynamicQueue<Lexeme<int>> &lexems_stream_int() { return tarith->lexems_stream_int;}
