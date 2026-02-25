@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_CXX_COMPILER /usr/local/bin/c++)
-set(CMAKE_CXX_STANDARD 26)
 set(PROJECT_NAME ariths)
 project(${PROJECT_NAME} LANGUAGES CXX)
 
