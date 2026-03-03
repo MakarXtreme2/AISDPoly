@@ -108,6 +108,29 @@ bool CompareM(Monom<T> a, Monom<T> b) {
   return a.getN() < b.getN();
 }
 
+// Operation Plus
+
+template <typename T>
+void OpPlus(Monom<T>& a, Monom<T>& b) {
+  a = a + b;
+}
+
+// Operation Minus
+
+template <typename T>
+void OpMinus(Monom<T>& a, Monom<T>& b) {
+  a = a - b;
+}
+
+// Operation Multiply
+
+template <typename T>
+void OpMultiply(Monom<T>& a, Monom<T>& b) {
+  a = a * b;
+}
+
+// Polynom
+
 template <typename T, typename List = TStdList<T>>
 class Polynom {
   TStdList<Monom<T>> list;
@@ -118,13 +141,20 @@ public:
       list.addFirst(tmp);
   }
   Polynom& operator+(const Monom<T> other) {
-    list.addSorted(other, CompareM<T>);
+    list.addSorted(other, CompareM<T>, OpPlus<T>);
+    return *this;
   }
   Polynom& operator-(const Monom<T> other) {
-
+    list.addSorted(other, CompareM<T>, OpMinus<T>);
+    return *this;
   }
   Polynom& operator*(const Monom<T> other) {
-
+    auto* begin = list.Begin();
+    auto* end = list.End();
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      **it = **it * other;
+    }
+    return *this;
   }
   friend Polynom& operator+(Monom<T> first, Polynom<T, List> second);
   friend Polynom& operator-(Monom<T> first, Polynom<T, List> second);
@@ -137,5 +167,7 @@ public:
   }
   Polynom& operator*(const Polynom& other) {
 
+  }
+  T Count() {
   }
 };

@@ -34,4 +34,3 @@ template <typename T>
 int CompareLE(T a, T b) {
   return a <= b ? 0 : 1;
 }
-

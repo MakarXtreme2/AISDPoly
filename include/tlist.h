@@ -145,7 +145,7 @@ public:
     int f;
     while (tmp != this->first) {
       f = comp(val, tmp->val);
-      if (!f)
+      if (f)
         break;
       tmp = tmp->next;
       tmp2 = tmp2->next;
@@ -258,6 +258,16 @@ public:
   void mergeSorted(BaseList<T>*& other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
     if (this == other)
       throw out_of_range("SelfAssign");
+    TStdList<T> list;
+    Node* tmp = this->first;
+    Node* tmp2 = other->first;
+    int f;
+    while (tmp != this->first && tmp2 != other->first) {
+      f = comp(tmp->val, tmp2->val);
+      switch (f) {
+      case 0:
+      }
+    }
   }
   ~TStdList() {
     while (this->size != 0)
