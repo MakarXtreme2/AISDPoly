@@ -32,7 +32,7 @@ public:
   size_t Size() { return size; }
   virtual void addFirst(T val) = 0;
   virtual void addLast(T val) = 0;
-  virtual void addSorted(T val, bool (*comp)(T a, T b)) = 0;
+  virtual void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
   virtual void addAt(T val, size_t ind) = 0;
   virtual T& getFirst() = 0;
   virtual T& getLast() = 0;
@@ -40,9 +40,9 @@ public:
   virtual T delFirst() = 0;
   virtual T delLast() = 0;
   virtual T delAt(size_t ind) = 0;
-  virtual void Sort(bool (*comp)(T a, T b)) = 0;
+  virtual void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
   virtual void Merge(BaseList<T>*& other) = 0;
-  virtual void mergeSorted(BaseList<T>*& other, bool (*comp)(T a, T b)) = 0;
+  virtual void mergeSorted(BaseList<T>*& other, int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
   virtual ~BaseList() = default;
 };
 
@@ -139,21 +139,30 @@ public:
     this->last = tmp;
     this->size++;
   }
-  void addSorted(T val, bool (*comp)(T a, T b)) {
+  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
     Node* tmp = this->first->next;
     Node* tmp2 = this->first;
+    int f;
     while (tmp != this->first) {
-      if (comp(val, tmp->val))
+      f = comp(val, tmp->val);
+      if (!f)
         break;
       tmp = tmp->next;
       tmp2 = tmp2->next;
     }
-    tmp2->next = new Node();
-    tmp2->next->val = val;
-    tmp2->next->next = tmp;
-    if (tmp2 == this->last)
-      this->last = tmp2->next;
-    this->size++;
+    switch (f) {
+    case 1: case 0:
+      tmp2->next = new Node();
+      tmp2->next->val = val;
+      tmp2->next->next = tmp;
+      if (tmp2 == this->last)
+        this->last = tmp2->next;
+      this->size++;
+      break;
+    default:
+      op(tmp->val, val);
+      break;
+    }
   }
   void addAt(T val, size_t ind) {
     if (ind < 0 || ind >= this->size)
@@ -225,11 +234,11 @@ public:
     this->size--;
     return tmpval;
   }
-  void Sort(bool (*comp)(T a, T b)) {
+  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
     TStdList<T> list;
     Node* tmp = this->first->next;
     while (tmp != this->first) {
-      list.addSorted(tmp->val, comp);
+      list.addSorted(tmp->val, comp, op);
       tmp = tmp->next;
     }
     swap(this->first, list.first);
@@ -246,15 +255,9 @@ public:
     delete begin;
     delete end;
   }
-  void mergeSorted(BaseList<T>*& other, bool (*comp)(T a, T b)) {
+  void mergeSorted(BaseList<T>*& other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
     if (this == other)
       throw out_of_range("SelfAssign");
-    auto* begin = other->Begin();
-    auto* end = other->End();
-    for (auto* it = begin; *it != *end; ++(*it))
-      addSorted(**it, comp);
-    delete begin;
-    delete end;
   }
   ~TStdList() {
     while (this->size != 0)

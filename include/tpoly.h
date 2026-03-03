@@ -1,7 +1,11 @@
+#pragma once
+#include "tlist.h"
+#include "tcomp.h"
 #include <iostream>
 #include <stdexcept>
 
 using namespace std;
+
 
 // Monom
 
@@ -97,15 +101,24 @@ public:
   }
 };
 
-template <typename T, typename List>
-class Polynom {
-  List list;
-public:
-  Polynom() {
+// Comparator for Monoms
 
+template <typename T>
+bool CompareM(Monom<T> a, Monom<T> b) {
+  return a.getN() < b.getN();
+}
+
+template <typename T, typename List = TStdList<T>>
+class Polynom {
+  TStdList<Monom<T>> list;
+public:
+  Polynom(T startcoeff = 0, unsigned int startN = 0) {
+    Monom<T> tmp(startcoeff, startN);
+    if (startcoeff != 0)
+      list.addFirst(tmp);
   }
   Polynom& operator+(const Monom<T> other) {
-
+    list.addSorted(other, CompareM<T>);
   }
   Polynom& operator-(const Monom<T> other) {
 
