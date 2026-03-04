@@ -259,15 +259,39 @@ public:
     if (this == other)
       throw out_of_range("SelfAssign");
     TStdList<T> list;
-    Node* tmp = this->first;
-    Node* tmp2 = other->first;
+    auto* begin1 = Begin();
+    auto* end1 = End();
+    auto* begin2 = other->Begin();
+    auto* end2 = other->End();
+    auto* it1 = begin1;
+    auto* it2 = begin2;
     int f;
-    while (tmp != this->first && tmp2 != other->first) {
-      f = comp(tmp->val, tmp2->val);
-      switch (f) {
+    while (*it1 != *end1 && *it2 != *end2) {
+      switch (comp(**it1, **it2)) {
       case 0:
+        list.addLast(**it1);
+        ++(*it1);
+        break;
+      case 1:
+        list.addLast(**it2);
+        ++(*it2);
+        break;
+      default:
+        T tmp = **it1;
+        op(tmp, **it2);
+        list.addLast(tmp);
+        ++(*it1);
+        ++(*it2);
+        break;
       }
     }
+    swap(this->first, list.first);
+    swap(this->last, list.last);
+    swap(this->size, list.size);
+    delete begin1;
+    delete begin2;
+    delete end1;
+    delete end2;
   }
   ~TStdList() {
     while (this->size != 0)
