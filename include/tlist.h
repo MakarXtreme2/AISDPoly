@@ -16,6 +16,7 @@ protected:
   Node* first;
   Node* last;
   size_t size = 0;
+  static void default_func(T& a, T& b) {}
 public:
   class Iterator {
   public:
@@ -32,7 +33,7 @@ public:
   size_t Size() { return size; }
   virtual void addFirst(T val) = 0;
   virtual void addLast(T val) = 0;
-  virtual void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
+  virtual void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func) = 0;
   virtual void addAt(T val, size_t ind) = 0;
   virtual T& getFirst() = 0;
   virtual T& getLast() = 0;
@@ -40,9 +41,9 @@ public:
   virtual T delFirst() = 0;
   virtual T delLast() = 0;
   virtual T delAt(size_t ind) = 0;
-  virtual void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
-  virtual void Merge(BaseList<T>*& other) = 0;
-  virtual void mergeSorted(BaseList<T>*& other, int (*comp)(T a, T b), void (*op)(T& a, T& b)) = 0;
+  virtual void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func) = 0;
+  virtual void Merge(BaseList<T>* other) = 0;
+  virtual void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false) = 0;
   virtual ~BaseList() = default;
 };
 
@@ -82,8 +83,8 @@ public:
     this->first = new Node();
     Node* tmp = this->first;
     tmp->next = this->first;
-    Node* tmp2 = other->first->next;
-    while (tmp2 != other->first) {
+    Node* tmp2 = other.first->next;
+    while (tmp2 != other.first) {
       tmp->next = new Node();
       tmp = tmp->next;
       tmp->val = tmp2->val;
@@ -101,8 +102,8 @@ public:
     }
     Node* tmp = this->first;
     tmp->next = this->first;
-    Node* tmp2 = other->first->next;
-    while (tmp2 != other->first) {
+    Node* tmp2 = other.first->next;
+    while (tmp2 != other.first) {
       tmp->next = new Node();
       tmp = tmp->next;
       tmp->val = tmp2->val;
@@ -111,6 +112,7 @@ public:
       this->size++;
     }
     this->last = tmp;
+    return *this;
   }
   Iterator* Begin() {
     return new StdIterator(this->first->next, this->last);
@@ -139,12 +141,12 @@ public:
     this->last = tmp;
     this->size++;
   }
-  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
+  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = BaseList<T>::default_func) {
     Node* tmp = this->first->next;
     Node* tmp2 = this->first;
     int f;
     while (tmp != this->first) {
-      f = comp(val, tmp->val);
+      f = comp(tmp->val, val);
       if (f)
         break;
       tmp = tmp->next;
@@ -234,7 +236,7 @@ public:
     this->size--;
     return tmpval;
   }
-  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
+  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = BaseList<T>::default_func) {
     TStdList<T> list;
     Node* tmp = this->first->next;
     while (tmp != this->first) {
@@ -245,7 +247,7 @@ public:
     swap(this->last, list.last);
     this->size = list.size;
   }
-  void Merge(BaseList<T>*& other) {
+  void Merge(BaseList<T>* other) {
     if (this == other)
       throw out_of_range("SelfAssign");
     auto* begin = other->Begin();
@@ -255,7 +257,7 @@ public:
     delete begin;
     delete end;
   }
-  void mergeSorted(BaseList<T>*& other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = [](T& a, T& b) {}) {
+  void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = BaseList<T>::default_func, bool reverse = false) {
     if (this == other)
       throw out_of_range("SelfAssign");
     TStdList<T> list;
@@ -273,7 +275,10 @@ public:
         ++(*it1);
         break;
       case 1:
-        list.addLast(**it2);
+        if (reverse)
+          list.addLast(-(**it2));
+        else
+          list.addLast(**it2);
         ++(*it2);
         break;
       default:
@@ -284,6 +289,17 @@ public:
         ++(*it2);
         break;
       }
+    }
+    while (*it1 != *end1) {
+      list.addLast(**it1);
+      ++(*it1);
+    }
+    while (*it2 != *end2) {
+      if (reverse)
+        list.addLast(-(**it2));
+      else
+        list.addLast(**it2);
+      ++(*it2);
     }
     swap(this->first, list.first);
     swap(this->last, list.last);

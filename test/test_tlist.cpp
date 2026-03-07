@@ -126,9 +126,9 @@ TEST(TStdList, list_can_merge) {
 TEST(TStdList, list_can_merge_sorted) {
   BaseList<int>* tmp = new TStdList<int>();
   BaseList<int>* tmp2 = new TStdList<int>();
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 20; i += 2) {
     tmp->addLast(i);
-    tmp2->addFirst(i + 10);
+    tmp2->addLast(i + 1);
   }
   tmp->mergeSorted(tmp2, CompareL<int>);
   auto* begin = tmp->Begin();

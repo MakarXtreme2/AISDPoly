@@ -6,12 +6,12 @@
 
 using namespace std;
 
-template <typename T, class List>
+template <typename T, template<typename> class List>
 class Polynom;
 
 // Monom
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 class Monom {
   union Degree {
     unsigned int a;
@@ -25,13 +25,12 @@ class Monom {
       if (deg & 1) {
         res *= x;
       }
-      res *= res;
+      x *= x;
       deg >>= 1;
     }
     return res;
   }
   T toDegree(T x, char deg) {
-    T res = 1;
     if (deg > 0)
       return quickDegree(x, deg);
     else if (deg < 0)
@@ -55,16 +54,50 @@ public:
     coeff -= other.coeff;
     return *this;
   }
-  Monom<T, List>& operator*(const Monom<T, List>& other) {
-    coeff *= other.coeff;
+  Monom<T, List> operator*(const T& other) {
+    Monom<T, List> tmp(coeff, N.a);
+    tmp.coeff = coeff * other;
+    return tmp;
+  }
+  Monom<T, List> operator-() {
+    Monom<T, List> tmp(-coeff, N.a);
+    return tmp;
+  }
+  Monom<T, List> operator*(const Monom<T, List>& other) {
+    Monom<T, List> tmp(coeff, N.a);
+    tmp.coeff *= other.coeff;
     for (size_t i = 0; i < 4; i++) {
-      if (N.b[i] > 0 && other.N.b[i] > 0 && (127 - N.b[i]) < other.N.b[i])
+      if (tmp.N.b[i] > 0 && other.N.b[i] > 0 && (127 - tmp.N.b[i]) < other.N.b[i])
         throw out_of_range("Big degree");
-      if (N.b[i] < 0 && other.N.b[i] < 0 && (-128 + N.b[i]) > other.N.b[i])
+      if (tmp.N.b[i] < 0 && other.N.b[i] < 0 && (-128 + tmp.N.b[i]) > other.N.b[i])
         throw out_of_range("Little degree");
-      N.b[i] += other.N.b[i];
+      tmp.N.b[i] += other.N.b[i];
     }
-    return *this;
+    return tmp;
+  }
+  Polynom<T, List> operator+(const T& other) {
+    Monom<T, List> tmp(other, 0);
+    return tmp + *this;
+  }
+  Polynom<T, List> operator+(const Monom<T, List>& other) {
+    Polynom<T, List> tmp(coeff, N.a);
+    return tmp + other;
+  }
+  Polynom<T, List> operator+(const Polynom<T, List> other) {
+    other = other + *this;
+    return other;
+  }
+  Polynom<T, List> operator-(const T& other) {
+    Monom<T, List> tmp(other, 0);
+    return *this - tmp;
+  }
+  Polynom<T, List> operator-(const Monom<T, List>& other) {
+    Polynom<T, List> tmp(coeff, N.a);
+    return tmp - other;
+  }
+  Polynom<T, List> operator-(const Polynom<T, List>& other) {
+    Polynom<T, List> tmp(coeff, N.a);
+    return tmp - other;
   }
   T Count(T x, T y, T z, T w) {
     T tmp = coeff;
@@ -96,78 +129,151 @@ public:
   T getCoeff() {
     return coeff;
   }
+  friend Polynom<T, List> operator+(T left, Monom<T, List> right) {
+    return right + left;
+  }
+  friend Polynom<T, List> operator-(T left, Monom<T, List> right) {
+    Monom<T, List> tmp(left, 0);
+    return tmp - right;
+  }
+  friend Monom<T, List> operator*(T left, Monom<T, List> right) {
+    return right * left;
+  }
 };
 
 // Comparator for Monoms
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 int CompareM(Monom<T, List> a, Monom<T, List> b) {
-  if(a.getN() < b.getN())
-    return 0;
-  if(a.getN() > b.getN())
-    return 1;
+  for (size_t i = 0; i < 4; i++) {
+    if(a.getAt(i) < b.getAt(i))
+      return 0;
+    if(a.getAt(i) > b.getAt(i))
+      return 1;
+  }
   return -1;
 }
 
 // Operation Plus
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 void OpPlus(Monom<T, List>& a, Monom<T, List>& b) {
   a.addOne(b);
 }
 
 // Operation Minus
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 void OpMinus(Monom<T, List>& a, Monom<T, List>& b) {
   a.subOne(b);
 }
 
 // Operation Multiply
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 void OpMultiply(Monom<T, List>& a, Monom<T, List>& b) {
   a = a * b;
 }
 
 // Polynom
 
-template <typename T, class List = TStdList<T>>
+template <typename T, template<typename> class List = TStdList>
 class Polynom {
-  TStdList<Monom<T, List>> list;
+  List<Monom<T, List>> list;
 public:
-  Polynom(T startcoeff = 0, unsigned int startN = 0) {
-    Monom<T, List> tmp(startcoeff, startN);
+  Polynom(T startcoeff = 0, char x = 0, char y = 0, char z = 0, char w = 0) {
+    Monom<T, List> tmp(startcoeff, 0);
+    tmp.setAt(x, 0);
+    tmp.setAt(y, 1);
+    tmp.setAt(z, 2);
+    tmp.setAt(w, 3);
     if (startcoeff != 0)
       list.addFirst(tmp);
   }
-  Polynom<T, List>& operator+(const Monom<T, List> other) {
-    list.addSorted(other, CompareM<T, List>, OpPlus<T, List>);
-    return *this;
+  Polynom<T, List> operator+(const T& other) {
+    Monom<T, List> tmp(other, 0);
+    return *this + tmp;
   }
-  Polynom<T, List>& operator-(const Monom<T, List> other) {
-    list.addSorted(other, CompareM<T, List>, OpMinus<T, List>);
-    return *this;
+  Polynom<T, List> operator-(const T& other) {
+    Monom<T, List> tmp(other, 0);
+    return *this - tmp;
   }
-  Polynom<T, List>& operator*(const Monom<T, List> other) {
-    auto* begin = list.Begin();
-    auto* end = list.End();
+  Polynom<T, List> operator*(const T& other) {
+    Monom<T, List> tmp(other, 0);
+    return *this * tmp;
+  }
+  Polynom<T, List> operator+(const Monom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    tmp.list.addSorted(other, CompareM<T, List>, OpPlus<T, List>);
+    return tmp;
+  }
+  Polynom<T, List> operator-(Monom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    other = -other;
+    tmp.list.addSorted(other, CompareM<T, List>, OpMinus<T, List>);
+    return tmp;
+  }
+  Polynom<T, List> operator*(const Monom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    auto* begin = tmp.list.Begin();
+    auto* end = tmp.list.End();
     for (auto* it = begin; *it != *end; ++(*it)) {
       **it = **it * other;
     }
     delete begin;
     delete end;
-    return *this;
+    return tmp;
   }
-  Polynom<T, List>& operator+(const Polynom<T, List>& other) {
-
+  Polynom<T, List> operator+(Polynom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    tmp.list.mergeSorted(&other.list, CompareM<T, List>, OpPlus<T, List>);
+    return tmp;
   }
-  Polynom<T, List>& operator-(const Polynom<T, List>& other) {
-
+  Polynom<T, List> operator-(Polynom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    tmp.list.mergeSorted(&other.list, CompareM<T, List>, OpMinus<T, List>, true);
+    return tmp;
   }
-  Polynom<T, List>& operator*(const Polynom<T, List>& other) {
-
+  Polynom<T, List> operator*(Polynom<T, List> other) {
+    Polynom<T, List> tmp;
+    auto* begin = list.Begin();
+    auto* end = list.End();
+    auto* oend = other.list.End();
+    for (auto* it1 = begin; *it1 != *end; ++(*it1)) {
+      auto* obegin = other.list.Begin();
+      for (auto* it2 = obegin; *it2 != *oend; ++(*it2)) {
+        tmp.list.addLast((**it1) * (**it2));
+      }
+      delete obegin;
+    }
+    delete begin;
+    delete end;
+    delete oend;
+    tmp.list.Sort(CompareM<T, List>, OpPlus<T, List>);
+    return tmp;
   }
-  T Count() {
+  T Count(T x = 1, T y = 1, T z = 1, T w = 1) {
+    T tmp = 0;
+    auto* begin = list.Begin();
+    auto* end = list.End();
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      tmp = tmp + (**it).Count(x, y, z, w);
+    }
+    return tmp;
+  }
+  friend Polynom<T, List> operator+(T left, Polynom<T, List> right) {
+    return right + left;
+  }
+  friend Polynom<T, List> operator-(T left, Polynom<T, List> right) {
+    Monom<T, List> tmp(left, 0);
+    return tmp - right;
+  }
+  friend Polynom<T, List> operator*(T left, Polynom<T, List> right) {
+    return right * left;
+  }
+  friend Polynom<T, List> operator*(Monom<T, List> left, const Polynom<T, List> other) {
+    other = other * left;
+    return other;
   }
 };
+
