@@ -6,6 +6,8 @@
 
 using namespace std;
 
+const string monSym = "xyzw";
+
 template <typename T, template<typename> class List>
 class Polynom;
 
@@ -38,9 +40,12 @@ class Monom {
     return 1;
   }
 public:
-  Monom(T _coeff = 0, unsigned int _a = 0) :
+  Monom(T _coeff = 0, char x = 0, char y = 0, char z = 0, char w = 0) :
     coeff(_coeff) {
-    N.a = _a;
+    N.b[0] = x;
+    N.b[1] = y;
+    N.b[2] = z;
+    N.b[3] = w;
   }
   Monom<T, List>& addOne(const Monom<T, List>& other) {
     if (N.a != other.N.a)
@@ -55,16 +60,19 @@ public:
     return *this;
   }
   Monom<T, List> operator*(const T& other) {
-    Monom<T, List> tmp(coeff, N.a);
+    Monom<T, List> tmp(coeff);
+    tmp.setN(N.a);
     tmp.coeff = coeff * other;
     return tmp;
   }
   Monom<T, List> operator-() {
-    Monom<T, List> tmp(-coeff, N.a);
+    Monom<T, List> tmp(-coeff);
+    tmp.setN(N.a);
     return tmp;
   }
   Monom<T, List> operator*(const Monom<T, List>& other) {
-    Monom<T, List> tmp(coeff, N.a);
+    Monom<T, List> tmp(coeff);
+    tmp.setN(N.a);
     tmp.coeff *= other.coeff;
     for (size_t i = 0; i < 4; i++) {
       if (tmp.N.b[i] > 0 && other.N.b[i] > 0 && (127 - tmp.N.b[i]) < other.N.b[i])
@@ -76,11 +84,11 @@ public:
     return tmp;
   }
   Polynom<T, List> operator+(const T& other) {
-    Monom<T, List> tmp(other, 0);
+    Monom<T, List> tmp(other);
     return tmp + *this;
   }
   Polynom<T, List> operator+(const Monom<T, List>& other) {
-    Polynom<T, List> tmp(coeff, N.a);
+    Polynom<T, List> tmp(coeff, N.b[0], N.b[1], N.b[2], N.b[3]);
     return tmp + other;
   }
   Polynom<T, List> operator+(const Polynom<T, List> other) {
@@ -88,15 +96,15 @@ public:
     return other;
   }
   Polynom<T, List> operator-(const T& other) {
-    Monom<T, List> tmp(other, 0);
+    Monom<T, List> tmp(other);
     return *this - tmp;
   }
   Polynom<T, List> operator-(const Monom<T, List>& other) {
-    Polynom<T, List> tmp(coeff, N.a);
+    Polynom<T, List> tmp(coeff, N.b[0], N.b[1], N.b[2], N.b[3]);
     return tmp - other;
   }
   Polynom<T, List> operator-(const Polynom<T, List>& other) {
-    Polynom<T, List> tmp(coeff, N.a);
+    Polynom<T, List> tmp(coeff, N.b[0], N.b[1], N.b[2], N.b[3]);
     return tmp - other;
   }
   T Count(T x, T y, T z, T w) {
@@ -133,11 +141,27 @@ public:
     return right + left;
   }
   friend Polynom<T, List> operator-(T left, Monom<T, List> right) {
-    Monom<T, List> tmp(left, 0);
+    Monom<T, List> tmp(left);
     return tmp - right;
   }
   friend Monom<T, List> operator*(T left, Monom<T, List> right) {
     return right * left;
+  }
+  friend ostream& operator<<(ostream& out, Monom<T, List>& monom) {
+    if (monom.coeff == 0)
+      cout << 0;
+    else {
+      cout << monom.coeff;
+      for (size_t i = 0; i < 4; i++) {
+        if (monom.N.b[i] != 0) {
+          cout << monSym[i];
+          if (monom.N.b[i] != 1) {
+            cout << "^" << (int)monom.N.b[i];
+          }
+        }
+      }
+    }
+    return out;
   }
 };
 
@@ -147,9 +171,9 @@ template <typename T, template<typename> class List = TStdList>
 int CompareM(Monom<T, List> a, Monom<T, List> b) {
   for (size_t i = 0; i < 4; i++) {
     if(a.getAt(i) < b.getAt(i))
-      return 0;
-    if(a.getAt(i) > b.getAt(i))
       return 1;
+    if(a.getAt(i) > b.getAt(i))
+      return 0;
   }
   return -1;
 }
@@ -182,24 +206,20 @@ class Polynom {
   List<Monom<T, List>> list;
 public:
   Polynom(T startcoeff = 0, char x = 0, char y = 0, char z = 0, char w = 0) {
-    Monom<T, List> tmp(startcoeff, 0);
-    tmp.setAt(x, 0);
-    tmp.setAt(y, 1);
-    tmp.setAt(z, 2);
-    tmp.setAt(w, 3);
+    Monom<T, List> tmp(startcoeff, x, y, z, w);
     if (startcoeff != 0)
       list.addFirst(tmp);
   }
   Polynom<T, List> operator+(const T& other) {
-    Monom<T, List> tmp(other, 0);
+    Monom<T, List> tmp(other);
     return *this + tmp;
   }
   Polynom<T, List> operator-(const T& other) {
-    Monom<T, List> tmp(other, 0);
+    Monom<T, List> tmp(other);
     return *this - tmp;
   }
   Polynom<T, List> operator*(const T& other) {
-    Monom<T, List> tmp(other, 0);
+    Monom<T, List> tmp(other);
     return *this * tmp;
   }
   Polynom<T, List> operator+(const Monom<T, List> other) {
@@ -259,6 +279,8 @@ public:
     for (auto* it = begin; *it != *end; ++(*it)) {
       tmp = tmp + (**it).Count(x, y, z, w);
     }
+    delete begin;
+    delete end;
     return tmp;
   }
   friend Polynom<T, List> operator+(T left, Polynom<T, List> right) {
@@ -274,6 +296,35 @@ public:
   friend Polynom<T, List> operator*(Monom<T, List> left, const Polynom<T, List> other) {
     other = other * left;
     return other;
+  }
+  friend ostream& operator<<(ostream& out, Polynom<T, List>& poly) {
+    auto* begin = poly.list.Begin();
+    auto* end = poly.list.End();
+    bool f = false;
+    if (*begin != *end) {
+      if ((**begin).getCoeff() != 0) {
+        cout << **begin;
+      } else
+        f = true;
+      ++(*begin);
+    }
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      if ((**it).getCoeff() < 0) {
+        if (!f)
+          cout << " + ";
+        f = false;
+        cout << "(" << **it << ")";
+      }
+      else if ((**it).getCoeff() > 0) {
+        if (!f)
+          cout << " + ";
+        f = false;
+        cout << **it;
+      }
+    }
+    delete begin;
+    delete end;
+    return out;
   }
 };
 

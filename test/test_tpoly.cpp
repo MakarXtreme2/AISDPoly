@@ -44,7 +44,7 @@ TEST(Monom, monom_can_multiply) {
 }
 
 TEST(Monom, monom_can_count) {
-  Monom<int> mn(2, 514);
+  Monom<int> mn(2, 2, 2);
   EXPECT_EQ(mn.Count(3, 3, 1, 1), 162);
 }
 
@@ -128,7 +128,20 @@ TEST(Polynom, polynom_super_mega_test) {
   Polynom<int> p2(20, 5, 2);
   Polynom<int> p3(30, 0, 0, 4);
   p2 = p2 + p3;
+  cout << p2 << endl;
   p1 = p3 - p1;
+  cout << p1 << endl;
   p1 = p1 * p2;
+  cout << p1 << endl;
   EXPECT_EQ(p1.Count(1, 2, 3), 6074200);
+}
+
+TEST(Polynom, polynom_can_count_same_value) {
+  Polynom<int> p1(1);
+  Monom<int> mn1(1, 1);
+  Monom<int> mn2(1, 2);
+  Monom<int> mn3(1, 3);
+  p1 = p1 + mn1 + mn2 + mn3;
+  p1 = p1 * p1;
+  EXPECT_EQ(p1.Count(2), 225);
 }
