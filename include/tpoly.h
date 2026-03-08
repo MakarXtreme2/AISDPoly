@@ -36,7 +36,7 @@ class Monom {
     if (deg > 0)
       return quickDegree(x, deg);
     else if (deg < 0)
-      return 1 / quickDegree(x, deg);
+      return 1 / quickDegree(x, -deg);
     return 1;
   }
 public:
@@ -83,6 +83,21 @@ public:
     }
     return tmp;
   }
+  Monom<T, List> operator/(const Monom<T, List>& other) {
+    Monom<T, List> tmp(coeff);
+    tmp.setN(N.a);
+    if (other.coeff == 0)
+      throw out_of_range("Dividing by zero");
+    tmp.coeff /= other.coeff;
+    for (size_t i = 0; i < 4; i++) {
+      if (tmp.N.b[i] >= 0 && other.N.b[i] < 0 && (tmp.N.b[i] - other.N.b[i]) > 127)
+        throw out_of_range("Big degree");
+      if (tmp.N.b[i] < 0 && other.N.b[i] > 0 && (tmp.N.b[i] - other.N.b[i]) < -128)
+        throw out_of_range("Little degree");
+      tmp.N.b[i] -= other.N.b[i];
+    }
+    return tmp;
+  }
   Polynom<T, List> operator+(const T& other) {
     Monom<T, List> tmp(other);
     return tmp + *this;
@@ -107,7 +122,7 @@ public:
     Polynom<T, List> tmp(coeff, N.b[0], N.b[1], N.b[2], N.b[3]);
     return tmp - other;
   }
-  T Count(T x, T y, T z, T w) {
+  T Count(T x = 0, T y = 0, T z = 0, T w = 0) {
     T tmp = coeff;
     tmp *= toDegree(x, N.b[0]);
     tmp *= toDegree(y, N.b[1]);
@@ -233,12 +248,34 @@ public:
     tmp.list.addSorted(other, CompareM<T, List>, OpMinus<T, List>);
     return tmp;
   }
+  Polynom<T, List> operator-() {
+    Polynom<T, List> tmp(*this);
+    auto* begin = tmp.list.Begin();
+    auto* end = tmp.list.End();
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      **it = -(**it);
+    }
+    delete begin;
+    delete end;
+    return tmp;
+  }
   Polynom<T, List> operator*(const Monom<T, List> other) {
     Polynom<T, List> tmp(*this);
     auto* begin = tmp.list.Begin();
     auto* end = tmp.list.End();
     for (auto* it = begin; *it != *end; ++(*it)) {
       **it = **it * other;
+    }
+    delete begin;
+    delete end;
+    return tmp;
+  }
+  Polynom<T, List> operator/(const Monom<T, List> other) {
+    Polynom<T, List> tmp(*this);
+    auto* begin = tmp.list.Begin();
+    auto* end = tmp.list.End();
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      **it = **it / other;
     }
     delete begin;
     delete end;
@@ -271,6 +308,36 @@ public:
     delete oend;
     tmp.list.Sort(CompareM<T, List>, OpPlus<T, List>);
     return tmp;
+  }
+  Polynom<T, List> operator/(Polynom<T, List> other) {
+    Polynom<T, List> tmp;
+    auto* begin = list.Begin();
+    auto* end = list.End();
+    auto* obegin = other.list.Begin();
+    auto* oend = other.list.End();
+    // Just for TArith. Doesn't work as it should
+    if (*obegin != *oend) {
+      for (auto* it1 = begin; *it1 != *end; ++(*it1)) {
+        tmp.list.addLast((**it1) / (**obegin));
+      }
+    }
+    delete begin;
+    delete obegin;
+    delete end;
+    delete oend;
+    // tmp.list.Sort(CompareM<T, List>, OpPlus<T, List>);
+    return tmp;
+  }
+  const bool operator==(const T& other) {
+    auto* begin = list.Begin();
+    auto* end = list.End();
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      if ((**it).getCoeff() != other && (**it).getN() == 0)
+        return false;
+      if ((**it).getCoeff() != 0 && (**it).getN() != 0)
+        return false;
+    }
+    return true;
   }
   T Count(T x = 1, T y = 1, T z = 1, T w = 1) {
     T tmp = 0;

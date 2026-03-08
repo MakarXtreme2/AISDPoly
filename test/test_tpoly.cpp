@@ -103,7 +103,7 @@ TEST(Polynom, polynom_can_work_backward) {
   Polynom<double> p1(2, 2);
   Monom<double> mn1(1, 3), mn2(1, -3), mn3(1, 4);
   p1 = mn1 * mn3 - mn2 + p1;
-  EXPECT_LE(p1.Count(2) - 135.875, 3e-10);
+  EXPECT_LT(p1.Count(2) - 135.875, 3e-10);
 }
 
 TEST(Polynom, polynom_can_do_hard_actions) {
@@ -134,6 +134,16 @@ TEST(Polynom, polynom_super_mega_test) {
   p1 = p1 * p2;
   cout << p1 << endl;
   EXPECT_EQ(p1.Count(1, 2, 3), 6074200);
+}
+
+TEST(Polynom, polynom_can_count_double) {
+  Polynom<double> p1(1, 2, -2);
+  Polynom<double> p2;
+  Monom<double> mn(1, 2, -2);
+  p2 = p2 + mn;
+  EXPECT_LT(mn.Count(3, 2, 0, 0) - 2.25, 3e-10);
+  EXPECT_LT(p2.Count(3, 2) - 2.25, 3e-10);
+  EXPECT_LT(p1.Count(3, 2) - 2.25, 3e-10);
 }
 
 TEST(Polynom, polynom_can_count_same_value) {
