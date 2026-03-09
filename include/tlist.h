@@ -9,12 +9,6 @@ using namespace std;
 template <typename T>
 class BaseList {
 protected:
-  struct Node {
-    T val;
-    Node* next;
-  };
-  Node* first;
-  Node* last;
   size_t size = 0;
   static void default_func(T& a, T& b) {}
 public:
@@ -23,7 +17,6 @@ public:
     virtual T& operator*() = 0;
     virtual Iterator& operator++() = 0;
     virtual bool operator!=(const Iterator& other) const = 0;
-    virtual Iterator* Clone() const = 0;
     virtual ~Iterator() = default;
   };
   virtual Iterator* Begin() = 0;
@@ -51,16 +44,18 @@ public:
 
 template <typename T>
 class TStdList : public BaseList<T> {
-  using Node = typename BaseList<T>::Node;
   using Iterator = typename BaseList<T>::Iterator;
+  struct Node {
+    T val;
+    Node* next;
+  };
+  Node* first;
+  Node* last;
   class StdIterator : public Iterator {
     Node* curr;
     Node* head;
   public:
     StdIterator(Node* _curr, Node* _head) : curr(_curr), head(_head) {}
-    Iterator* Clone() const {
-      return new StdIterator(curr, head);
-    }
     T& operator*() {
       return curr->val;
     }
@@ -75,24 +70,24 @@ class TStdList : public BaseList<T> {
   };
 public:
   TStdList() {
-    this->first = new Node();
-    this->first->next = this->first;
-    this->last = this->first;
+    first = new Node();
+    first->next = first;
+    last = first;
   }
   TStdList(const TStdList<T>& other) {
-    this->first = new Node();
-    Node* tmp = this->first;
-    tmp->next = this->first;
+    first = new Node();
+    Node* tmp = first;
+    tmp->next = first;
     Node* tmp2 = other.first->next;
     while (tmp2 != other.first) {
       tmp->next = new Node();
       tmp = tmp->next;
       tmp->val = tmp2->val;
-      tmp->next = this->first;
+      tmp->next = first;
       tmp2 = tmp2->next;
       this->size++;
     }
-    this->last = tmp;
+    last = tmp;
   }
   TStdList<T>& operator=(const TStdList<T> other) {
     if (this == &other)
@@ -100,18 +95,18 @@ public:
     while (this->size != 0) {
       delFirst();
     }
-    Node* tmp = this->first;
-    tmp->next = this->first;
+    Node* tmp = first;
+    tmp->next = first;
     Node* tmp2 = other.first->next;
     while (tmp2 != other.first) {
       tmp->next = new Node();
       tmp = tmp->next;
       tmp->val = tmp2->val;
-      tmp->next = this->first;
+      tmp->next = first;
       tmp2 = tmp2->next;
       this->size++;
     }
-    this->last = tmp;
+    last = tmp;
     return *this;
   }
   Iterator* Begin() {
@@ -129,23 +124,23 @@ public:
   void addFirst(T val) {
     Node* tmp = new Node();
     tmp->val = val;
-    tmp->next = this->first->next;
-    this->first->next = tmp;
+    tmp->next = first->next;
+    first->next = tmp;
     this->size++;
   }
   void addLast(T val) {
     Node* tmp = new Node();
-    this->last->next = tmp;
-    tmp->next = this->first;
+    last->next = tmp;
+    tmp->next = first;
     tmp->val = val;
-    this->last = tmp;
+    last = tmp;
     this->size++;
   }
   void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = BaseList<T>::default_func) {
-    Node* tmp = this->first->next;
-    Node* tmp2 = this->first;
+    Node* tmp = first->next;
+    Node* tmp2 = first;
     int f;
-    while (tmp != this->first) {
+    while (tmp != first) {
       f = comp(tmp->val, val);
       if (f)
         break;
@@ -157,8 +152,8 @@ public:
       tmp2->next = new Node();
       tmp2->next->val = val;
       tmp2->next->next = tmp;
-      if (tmp2 == this->last)
-        this->last = tmp2->next;
+      if (tmp2 == last)
+        last = tmp2->next;
       this->size++;
       break;
     default:
@@ -169,7 +164,7 @@ public:
   void addAt(T val, size_t ind) {
     if (ind < 0 || ind >= this->size)
       throw out_of_range("Wrong Index");
-    Node* tmp = this->first;
+    Node* tmp = first;
     for (size_t i = 0; i < ind; i++)
       tmp = tmp->next;
     Node* tmp2 = tmp->next;
@@ -181,7 +176,7 @@ public:
   T& getFirst() {
     if (this->size == 0)
       throw out_of_range("List is empty");
-    return this->first->next->val;
+    return first->next->val;
   }
   T& getLast() {
     if (this->size == 0)
@@ -191,7 +186,7 @@ public:
   T& getAt(size_t ind) {
     if (ind < 0 || ind >= this->size)
       throw out_of_range("Wrong Index");
-    Node* tmp = this->first->next;
+    Node* tmp = first->next;
     for (size_t i = 0; i < ind; i++)
       tmp = tmp->next;
     return tmp->val;
@@ -199,25 +194,25 @@ public:
   T delFirst() {
     if (this->size == 0)
       throw out_of_range("List is already empty");
-    Node* tmp = this->first->next;
+    Node* tmp = first->next;
     T tmpval = tmp->val;
-    this->first->next = tmp->next;
+    first->next = tmp->next;
     delete tmp;
     if (this->size == 1)
-      this->last = this->first;
+      last = first;
     this->size--;
     return tmpval;
   }
   T delLast() {
     if (this->size == 0)
       throw out_of_range("List is already empty");
-    Node* tmp = this->first;
-    while (tmp->next != this->last)
+    Node* tmp = first;
+    while (tmp->next != last)
       tmp = tmp->next;
-    T tmpval = this->last->val;
-    delete this->last;
-    this->last = tmp;
-    tmp->next = this->first;
+    T tmpval = last->val;
+    delete last;
+    last = tmp;
+    tmp->next = first;
     this->size--;
     return tmpval;
   }
@@ -230,21 +225,21 @@ public:
     Node* tmp2 = tmp->next;
     T tmpval = tmp2->val;
     tmp->next = tmp2->next;
-    if (this->last == tmp2)
-      this->last = tmp;
+    if (last == tmp2)
+      last = tmp;
     delete tmp2;
     this->size--;
     return tmpval;
   }
   void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = BaseList<T>::default_func) {
     TStdList<T> list;
-    Node* tmp = this->first->next;
-    while (tmp != this->first) {
+    Node* tmp = first->next;
+    while (tmp != first) {
       list.addSorted(tmp->val, comp, op);
       tmp = tmp->next;
     }
-    swap(this->first, list.first);
-    swap(this->last, list.last);
+    swap(first, list.first);
+    swap(last, list.last);
     this->size = list.size;
   }
   void Merge(BaseList<T>* other) {
@@ -301,8 +296,8 @@ public:
         list.addLast(**it2);
       ++(*it2);
     }
-    swap(this->first, list.first);
-    swap(this->last, list.last);
+    swap(first, list.first);
+    swap(last, list.last);
     swap(this->size, list.size);
     delete begin1;
     delete begin2;
@@ -312,6 +307,180 @@ public:
   ~TStdList() {
     while (this->size != 0)
       delFirst();
-    delete this->first;
+    delete first;
+  }
+};
+
+// Skip List
+
+template <typename T>
+class SkipList : public BaseList<T> {
+  using BaseList<T>::default_func;
+  using Iterator = typename BaseList<T>::Iterator;
+  const size_t maxlevel = 4;
+  size_t steps[4] = {1, 2, 4, 8};
+  struct Node {
+    T val;
+    size_t level;
+    Node** next;
+  };
+  Node* first;
+  Node* last;
+public:
+  class SkipIterator : public Iterator {
+    Node* curr;
+    Node* head;
+  public:
+    SkipIterator(Node* _curr, Node* _head) : curr(_curr), head(_head) {}
+    T& operator*() {
+      return curr->val;
+    }
+    Iterator& operator++() {
+      curr = curr->next;
+      return *this;
+    }
+    bool operator!=(const Iterator& other) const {
+      const SkipIterator& otherIt = static_cast<const SkipIterator&>(other);
+      return curr != otherIt.curr;
+    }
+  };
+  SkipList() {
+    first = nullptr;
+    last = nullptr;
+  }
+  SkipList(const SkipList<T>& other) {
+    first = nullptr;
+    last = nullptr;
+    Node* tmp = first;
+    Node* tmp2 = other.first;
+    while (tmp2 != nullptr) {
+      if (first == nullptr) {
+        first = new Node();
+        first->val = tmp2->val;
+        last = first;
+        tmp->level = tmp2->level;
+        tmp->next = new Node*[tmp->level];
+        for (size_t i = 0; i < tmp->level; i++)
+          tmp->next[i] = nullptr;
+      } else {
+        tmp->next[0] = new Node();
+        tmp = tmp->next[0];
+        last = tmp;
+        tmp->val = tmp2->val;
+        tmp->level = tmp2->level;
+        tmp->next = new Node*[tmp->level];
+        for (size_t i = 0; i < tmp->level; i++)
+          tmp->next[i] = nullptr;
+      }
+      tmp2 = tmp2->next[0];
+    }
+    tmp = first;
+    while (tmp != nullptr) {
+      for (size_t lvl = 1; lvl < tmp->level; lvl++) {
+        tmp2 = tmp;
+        for (size_t step = 1; step <= steps[lvl]; step++) {
+          if (tmp2 == nullptr)
+            break;
+          tmp2 = tmp2->next[0];
+        }
+        tmp->next[lvl] = tmp2;
+      }
+      tmp = tmp->next[0];
+    }
+    this->size = other.size;
+  }
+  SkipList<T>& operator=(const SkipList<T>& other) {
+    if (this == &other)
+      return out_of_range("SelfAssign");
+    while (this->size != 0)
+      delFirst();
+    last = nullptr;
+    Node* tmp = first;
+    Node* tmp2 = other.first;
+    while (tmp2 != nullptr) {
+      if (first == nullptr) {
+        first = new Node();
+        first->val = tmp2->val;
+        last = first;
+        tmp->level = tmp2->level;
+        tmp->next = new Node*[tmp->level];
+        for (size_t i = 0; i < tmp->level; i++)
+          tmp->next[i] = nullptr;
+      } else {
+        tmp->next[0] = new Node();
+        tmp = tmp->next[0];
+        last = tmp;
+        tmp->val = tmp2->val;
+        tmp->level = tmp2->level;
+        tmp->next = new Node*[tmp->level];
+        for (size_t i = 0; i < tmp->level; i++)
+          tmp->next[i] = nullptr;
+      }
+      tmp2 = tmp2->next[0];
+    }
+    tmp = first;
+    while (tmp != nullptr) {
+      for (size_t lvl = 1; lvl < tmp->level; lvl++) {
+        tmp2 = tmp;
+        for (size_t step = 1; step <= steps[lvl]; step++) {
+          if (tmp2 == nullptr)
+            break;
+          tmp2 = tmp2->next[0];
+        }
+        tmp->next[lvl] = tmp2;
+      }
+      tmp = tmp->next[0];
+    }
+    this->size = other.size;
+    return *this;
+  }
+  Iterator* Begin() {
+    return new SkipIterator(first, last->next[0]);
+  }
+  Iterator* End() {
+    return new SkipIterator(last->next[0], last->next[0]);
+  }
+  const Iterator* Begin() const {
+    return new SkipIterator(first, last->next[0]);
+  }
+  const Iterator* End() const {
+    return new SkipIterator(last->next[0], last->next[0]);
+  }
+  void addFirst(T val);
+  void addLast(T val);
+  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
+  void addAt(T val, size_t ind);
+  T& getFirst() {
+    if (first == nullptr)
+      throw out_of_range("List is empty");
+    return first->val;
+  }
+  T& getLast() {
+    if (last == nullptr)
+      throw out_of_range("List is empty");
+    return last->val;
+  }
+  T& getAt(size_t ind);
+  T delFirst() {
+    if (this->size == 0)
+      throw out_of_range("List is already empty");
+    T tmp = first->val;
+    Node* tmp2 = first->next[0];
+    delete[] first->next;
+    delete first;
+    first = tmp2;
+    if (this->size == 1)
+      last = nullptr;
+    this->size--;
+    return tmp;
+  }
+  T delLast();
+  T delAt(size_t ind);
+  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
+  void Merge(BaseList<T>* other);
+  void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false);
+  ~SkipList() {
+    while (this->size != 0)
+      delFirst();
   }
 };

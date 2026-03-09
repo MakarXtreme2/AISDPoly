@@ -610,13 +610,13 @@ public:
 
 // LexemeTranslator for Polynom
 
-template <typename T>
-class ILexemeTranslatorP : public IHandler<Polynom<T>> {
+template <typename T, template <typename> class List = TStdList>
+class ILexemeTranslatorP : public IHandler<Polynom<T, List>> {
   TuringMachine<SCFunc> turm;
-  TDynamicQueue<Lexeme<Polynom<T>>> *qe;
+  TDynamicQueue<Lexeme<Polynom<T, List>>> *qe;
   bool isPushed = true;
   bool isPolyYet = false;
-  Lexeme<Polynom<T>> lxt;
+  Lexeme<Polynom<T, List>> lxt;
   size_t Decode(char ch) {
     if (ch >= '0' && ch <= '9' ||
         ch >= 'a' && ch <= 'z' ||
@@ -644,7 +644,7 @@ class ILexemeTranslatorP : public IHandler<Polynom<T>> {
     isPushed = false;
   }
   void OperationOne(char c) {
-    Lexeme<Polynom<T>> lx;
+    Lexeme<Polynom<T, List>> lx;
     if (!isPushed)
       qe->Push(lxt);
     isPushed = true;
@@ -657,7 +657,7 @@ class ILexemeTranslatorP : public IHandler<Polynom<T>> {
     qe->Push(lx);
   }
   void SkobeOne(char c) {
-    Lexeme<Polynom<T>> lx;
+    Lexeme<Polynom<T, List>> lx;
     if (!isPushed)
       qe->Push(lxt);
     isPushed = true;
@@ -668,9 +668,9 @@ class ILexemeTranslatorP : public IHandler<Polynom<T>> {
   }
 public:
 
-  ILexemeTranslatorP(TArith<Polynom<T>> &_tarith) : turm(2, 3) {
+  ILexemeTranslatorP(TArith<Polynom<T, List>> &_tarith) : turm(2, 3) {
     this->tarith = &_tarith;
-    qe = new TDynamicQueue<Lexeme<Polynom<T>>>(this->inf_str().size());
+    qe = new TDynamicQueue<Lexeme<Polynom<T, List>>>(this->inf_str().size());
     TPair<SCFunc> tpairs[6] = {{1, [this](char c) { this->PolynomOne(c); }},
                                {0, [this](char c) { this->OperationOne(c); }},
                                {0, [this](char c) { this->SkobeOne(c); }},
@@ -685,7 +685,7 @@ public:
   }
   void Do() {
     if (qe == nullptr)
-      qe = new TDynamicQueue<Lexeme<Polynom<T>>>(this->inf_str().size());
+      qe = new TDynamicQueue<Lexeme<Polynom<T, List>>>(this->inf_str().size());
     for (size_t i = 0; i < this->inf_str().size(); i++) {
       size_t tmp = Decode(this->inf_str()[i]);
       if (isPolyYet && this->inf_str()[i] == '-') {
@@ -711,16 +711,16 @@ public:
 
 // ICorrectChecker for polynom
 
-template <typename T>
-class ICorrectCheckerP : public IHandler<Polynom<T>> {
+template <typename T, template <typename> class List = TStdList>
+class ICorrectCheckerP : public IHandler<Polynom<T, List>> {
   size_t pos;
   TDynamicStack<size_t>* st;
   TDynamicQueue<Exception>* exqe;
-  TuringMachine<STFunc<Polynom<T>>> turm;
-  TDynamicQueue<Lexeme<Polynom<T>>> *qe;
-  Lexeme<Polynom<T>> tmplx;
+  TuringMachine<STFunc<Polynom<T, List>>> turm;
+  TDynamicQueue<Lexeme<Polynom<T, List>>> *qe;
+  Lexeme<Polynom<T, List>> tmplx;
   bool divide_by = false;
-  size_t Decode(Lexeme<Polynom<T>> lx) {
+  size_t Decode(Lexeme<Polynom<T, List>> lx) {
     if (lx.Type == polynom)
       return 0;
     else if (lx.Type == binary_operation)
@@ -732,7 +732,7 @@ class ICorrectCheckerP : public IHandler<Polynom<T>> {
     else
       return 4;
   }
-  void CheckPolynom(Lexeme<Polynom<T>>& lx) {
+  void CheckPolynom(Lexeme<Polynom<T, List>>& lx) {
     size_t ind = 0, ind2 = 0;
     bool isNumber = false;
     bool isLetter = false;
@@ -779,7 +779,7 @@ class ICorrectCheckerP : public IHandler<Polynom<T>> {
     if (lx.Text[lx.Text.size() - 1] == '^')
       throw Exception(format("Polynom {} can't end with ^ on pos: {}", lx.Text, pos + lx.Text.size() - 1), pos + lx.Text.size() - 1);
   }
-  void CreatePolynom(Lexeme<Polynom<T>>& lx) {
+  void CreatePolynom(Lexeme<Polynom<T, List>>& lx) {
     size_t ind = 0;
     T coeff = 0;
     size_t now = 0;
@@ -823,15 +823,15 @@ class ICorrectCheckerP : public IHandler<Polynom<T>> {
         tmp = -tmp;
       deg[now] += tmp;
     }
-    Polynom<T> p(coeff, deg[0], deg[1], deg[2], deg[3]);
+    Polynom<T, List> p(coeff, deg[0], deg[1], deg[2], deg[3]);
     lx.Value = p;
   }
-  void PolynomOne(Lexeme<Polynom<T>> lx) {
+  void PolynomOne(Lexeme<Polynom<T, List>> lx) {
     CheckPolynom(lx);
     CreatePolynom(lx);
     qe->Push(lx);
   }
-  void PolynomTwo(Lexeme<Polynom<T>> lx) {
+  void PolynomTwo(Lexeme<Polynom<T, List>> lx) {
     CheckPolynom(lx);
     CreatePolynom(lx);
     if (divide_by && lx.Value == 0)
@@ -839,22 +839,22 @@ class ICorrectCheckerP : public IHandler<Polynom<T>> {
     divide_by = false;
     qe->Push(lx);
   }
-  void OperationOne(Lexeme<Polynom<T>> lx) {
+  void OperationOne(Lexeme<Polynom<T, List>> lx) {
     if (lx.Text != "+" && lx.Text != "-")
       throw Exception(format("Wrong operation {} on pos: {}", lx.Text, pos),pos);
     lx.Type = single_operation;
     qe->Push(lx);
   }
-  void OperationTwo(Lexeme<Polynom<T>> lx) {
+  void OperationTwo(Lexeme<Polynom<T, List>> lx) {
     qe->Push(lx);
     if (lx.Text == "/")
       divide_by = true;
   }
-  void SkobeOpenOne(Lexeme<Polynom<T>> lx) {
+  void SkobeOpenOne(Lexeme<Polynom<T, List>> lx) {
     qe->Push(lx);
     st->Push(pos);
   }
-  void SkobeCloseOne(Lexeme<Polynom<T>> lx) {
+  void SkobeCloseOne(Lexeme<Polynom<T, List>> lx) {
     qe->Push(lx);
     if (st->isEmpty())
       throw Exception(format("Wrong skobe {} on pos: {}", lx.Text, pos), pos);
@@ -887,9 +887,9 @@ class ICorrectCheckerP : public IHandler<Polynom<T>> {
 
   }
 public:
-  ICorrectCheckerP(TArith<Polynom<T>> &_tarith) : turm(5, 4) {
+  ICorrectCheckerP(TArith<Polynom<T, List>> &_tarith) : turm(5, 4) {
     this->tarith = &_tarith;
-    qe = new TDynamicQueue<Lexeme<Polynom<T>>>(this->inf_str().size());
+    qe = new TDynamicQueue<Lexeme<Polynom<T, List>>>(this->inf_str().size());
     st = new TDynamicStack<size_t>(this->inf_str().size());
     exqe = new TDynamicQueue<Exception>(this->inf_str().size());
     //mod 4: 0 - number, 1 - operation, 2 - skobe "(", 3 - skobe ")"
@@ -899,27 +899,27 @@ public:
     //state 2 - got operation
     //state 3 - got skobe "("
     //state 4 - got skobe ")"
-    TPair<STFunc<Polynom<T>>> tpairs[20] = {
-      {1, [this](Lexeme<Polynom<T>> lx) { this->PolynomOne(lx); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { this->OperationOne(lx); }},
-      {3, [this](Lexeme<Polynom<T>> lx) { this->SkobeOpenOne(lx); }},
-      {0, [this](Lexeme<Polynom<T>> lx) { throw Exception(format("Wrong skobe {} on pos: {}", lx.Text, pos), pos); }},
-      {1, [this](Lexeme<Polynom<T>> lx) { throw Exception(format("Duplicate numbers {} on pos: {}", lx.Text, pos), pos); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { this->OperationTwo(lx); }},
-      {3, [this](Lexeme<Polynom<T>> lx) { this->st->Push(pos); throw Exception(format("Skobe {} can't be after number on pos: {}", lx.Text, pos), pos); }},
-      {4, [this](Lexeme<Polynom<T>> lx) { this->SkobeCloseOne(lx); }},
-      {1, [this](Lexeme<Polynom<T>> lx) { this->PolynomTwo(lx); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { throw Exception(format("Wrong operation {} on pos: {}", lx.Text, pos), pos); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { this->SkobeOpenOne(lx); }},
-      {4, [this](Lexeme<Polynom<T>> lx) { if (!this->st->isEmpty()) this->st->Pop(); throw Exception(format("Wrong skobe {} after operation on pos: {}", lx.Text, pos), pos); }},
-      {1, [this](Lexeme<Polynom<T>> lx) { this->PolynomOne(lx); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { this->OperationOne(lx); }},
-      {3, [this](Lexeme<Polynom<T>> lx) { this->SkobeOpenOne(lx); }},
-      {3, [this](Lexeme<Polynom<T>> lx) { if (!this->st->isEmpty()) this->st->Pop(); throw Exception(format("Skobe {} close empty space on pos: {}", lx.Text, pos), pos); }},
-      {4, [this](Lexeme<Polynom<T>> lx) { throw Exception(format("Number {} can't be after close skobe on pos: {}", lx.Text, pos), pos); }},
-      {2, [this](Lexeme<Polynom<T>> lx) { this->OperationTwo(lx); }},
-      {3, [this](Lexeme<Polynom<T>> lx) { this->st->Push(pos); throw Exception(format("Skobe {} can't be after close skobe on pos: {}", lx.Text, pos), pos);}},
-      {4, [this](Lexeme<Polynom<T>> lx) { this->SkobeCloseOne(lx); }}
+    TPair<STFunc<Polynom<T, List>>> tpairs[20] = {
+      {1, [this](Lexeme<Polynom<T, List>> lx) { this->PolynomOne(lx); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { this->OperationOne(lx); }},
+      {3, [this](Lexeme<Polynom<T, List>> lx) { this->SkobeOpenOne(lx); }},
+      {0, [this](Lexeme<Polynom<T, List>> lx) { throw Exception(format("Wrong skobe {} on pos: {}", lx.Text, pos), pos); }},
+      {1, [this](Lexeme<Polynom<T, List>> lx) { throw Exception(format("Duplicate numbers {} on pos: {}", lx.Text, pos), pos); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { this->OperationTwo(lx); }},
+      {3, [this](Lexeme<Polynom<T, List>> lx) { this->st->Push(pos); throw Exception(format("Skobe {} can't be after number on pos: {}", lx.Text, pos), pos); }},
+      {4, [this](Lexeme<Polynom<T, List>> lx) { this->SkobeCloseOne(lx); }},
+      {1, [this](Lexeme<Polynom<T, List>> lx) { this->PolynomTwo(lx); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { throw Exception(format("Wrong operation {} on pos: {}", lx.Text, pos), pos); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { this->SkobeOpenOne(lx); }},
+      {4, [this](Lexeme<Polynom<T, List>> lx) { if (!this->st->isEmpty()) this->st->Pop(); throw Exception(format("Wrong skobe {} after operation on pos: {}", lx.Text, pos), pos); }},
+      {1, [this](Lexeme<Polynom<T, List>> lx) { this->PolynomOne(lx); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { this->OperationOne(lx); }},
+      {3, [this](Lexeme<Polynom<T, List>> lx) { this->SkobeOpenOne(lx); }},
+      {3, [this](Lexeme<Polynom<T, List>> lx) { if (!this->st->isEmpty()) this->st->Pop(); throw Exception(format("Skobe {} close empty space on pos: {}", lx.Text, pos), pos); }},
+      {4, [this](Lexeme<Polynom<T, List>> lx) { throw Exception(format("Number {} can't be after close skobe on pos: {}", lx.Text, pos), pos); }},
+      {2, [this](Lexeme<Polynom<T, List>> lx) { this->OperationTwo(lx); }},
+      {3, [this](Lexeme<Polynom<T, List>> lx) { this->st->Push(pos); throw Exception(format("Skobe {} can't be after close skobe on pos: {}", lx.Text, pos), pos);}},
+      {4, [this](Lexeme<Polynom<T, List>> lx) { this->SkobeCloseOne(lx); }}
     };
     turm.Load(tpairs, 20);
   }
@@ -932,11 +932,11 @@ public:
   }
   void Do() {
     if (qe == nullptr) {
-      qe = new TDynamicQueue<Lexeme<Polynom<T>>>(this->lexems_stream_int().Size());
+      qe = new TDynamicQueue<Lexeme<Polynom<T, List>>>(this->lexems_stream_int().Size());
       st = new TDynamicStack<size_t>(this->lexems_stream_int().Size());
       exqe = new TDynamicQueue<Exception>(this->lexems_stream_int().Size());
     }
-    TDynamicQueue<Lexeme<Polynom<T>>> qe2 = this->tarith->LexemsStreamInt();
+    TDynamicQueue<Lexeme<Polynom<T, List>>> qe2 = this->tarith->LexemsStreamInt();
     size_t len = qe2.Size();
     pos = 0;
     while (!qe2.isEmpty()) {

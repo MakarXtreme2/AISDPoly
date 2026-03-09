@@ -290,3 +290,17 @@ TEST(ICounter, icounter_work_correct_with_polynom) {
   arth.LaunchAllHandlers();
   EXPECT_EQ(arth.GetResult().Count(2, 3), 32);
 }
+
+TEST(ICounter, icounter_work_correct_with_polynom_repeat) {
+  TArith<Polynom<int>> arth("xyxxy + xxyyy");
+  ILexemeTranslatorP<int> hand1(arth);
+  ICorrectCheckerP<int> hand2(arth);
+  IPostfixMaker<Polynom<int>> hand3(arth);
+  ICounter<Polynom<int>> hand4(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.AddHandler(hand3);
+  arth.AddHandler(hand4);
+  arth.LaunchAllHandlers();
+  EXPECT_EQ(arth.GetResult().Count(2, 3), 180);
+}
