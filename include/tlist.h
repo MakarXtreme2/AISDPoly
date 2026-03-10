@@ -326,6 +326,29 @@ class SkipList : public BaseList<T> {
   };
   Node* first;
   Node* last;
+  size_t randomLevel() {
+    size_t level = 1;
+    double p = 1;
+    for (size_t i = 1; i < maxlevel; i++) {
+      p = p / 2;
+      double tmp = double(rand() % 1000) / 1000;
+      if (tmp >= p)
+        break;
+      level++;
+    }
+    return level;
+  }
+  void setLevels(Node* tmp) {
+    size_t lvl = 1;
+    Node* tmp2 = tmp->next[0];
+    for (size_t step = 1; step <= steps[tmp->level - 1]; step++) {
+      if (tmp2 == nullptr)
+        break;
+      if (step == steps[lvl])
+        tmp->next[lvl++] = tmp2;
+      tmp2 = tmp2->next[0];
+    }
+  }
 public:
   class SkipIterator : public Iterator {
     Node* curr;
@@ -376,15 +399,7 @@ public:
     }
     tmp = first;
     while (tmp != nullptr) {
-      for (size_t lvl = 1; lvl < tmp->level; lvl++) {
-        tmp2 = tmp;
-        for (size_t step = 1; step <= steps[lvl]; step++) {
-          if (tmp2 == nullptr)
-            break;
-          tmp2 = tmp2->next[0];
-        }
-        tmp->next[lvl] = tmp2;
-      }
+      setLevels(tmp);
       tmp = tmp->next[0];
     }
     this->size = other.size;
@@ -420,15 +435,7 @@ public:
     }
     tmp = first;
     while (tmp != nullptr) {
-      for (size_t lvl = 1; lvl < tmp->level; lvl++) {
-        tmp2 = tmp;
-        for (size_t step = 1; step <= steps[lvl]; step++) {
-          if (tmp2 == nullptr)
-            break;
-          tmp2 = tmp2->next[0];
-        }
-        tmp->next[lvl] = tmp2;
-      }
+      setLevels(tmp);
       tmp = tmp->next[0];
     }
     this->size = other.size;
@@ -446,7 +453,18 @@ public:
   const Iterator* End() const {
     return new SkipIterator(last->next[0], last->next[0]);
   }
-  void addFirst(T val);
+  void addFirst(T val) {
+    Node* tmp = new Node();
+    tmp->val = val;
+    tmp->level = randomLevel();
+    tmp->next = new Node*[tmp->level];
+    tmp->next[0] = first;
+    first = tmp;
+    if (this->size == 0)
+      last = tmp;
+    setLevels(tmp);
+    this->size++;
+  }
   void addLast(T val);
   void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
   void addAt(T val, size_t ind);
