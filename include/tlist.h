@@ -326,6 +326,7 @@ class SkipList : public BaseList<T> {
   };
   Node* first;
   Node* last;
+  Node* update[4];
   size_t randomLevel() {
     size_t level = 1;
     double p = 1;
@@ -348,6 +349,21 @@ class SkipList : public BaseList<T> {
         tmp->next[lvl++] = tmp2;
       tmp2 = tmp2->next[0];
     }
+  }
+  void getUpdate(size_t ind2) {
+    size_t ind = 0;
+    Node* tmp = first;
+    for (size_t i = 0; i < 4; i++)
+      update[i] = nullptr;
+    if (ind < ind2) {
+      for (size_t i = 3; i >= 0; i--) {
+        if (tmp->level > i)
+          continue;
+      }
+    }
+  }
+  void setUpdate(Node*& tmp) {
+
   }
 public:
   class SkipIterator : public Iterator {
@@ -467,7 +483,18 @@ public:
   }
   void addLast(T val);
   void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
-  void addAt(T val, size_t ind);
+  void addAt(T val, size_t ind) {
+    if (ind < 0 || ind > this->size)
+      throw out_of_range("Index out of range");
+    getUpdate(ind);
+    Node* tmp = new Node();
+    tmp->level = randomLevel();
+    tmp->val = val;
+    tmp->next = new Node*[tmp->level];
+    tmp->next[0] = update[0]->next[0]->next[0];
+    setLevels(tmp);
+    setUpdate(tmp);
+  }
   T& getFirst() {
     if (first == nullptr)
       throw out_of_range("List is empty");
