@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include <stdexcept>
+#include <vector>
+#include "tstack.h"
 
 using namespace std;
 
@@ -142,7 +144,7 @@ public:
     int f;
     while (tmp != first) {
       f = comp(tmp->val, val);
-      if (f)
+      if (f == 0 || f == -1)
         break;
       tmp = tmp->next;
       tmp2 = tmp2->next;
@@ -265,11 +267,11 @@ public:
     int f;
     while (*it1 != *end1 && *it2 != *end2) {
       switch (comp(**it1, **it2)) {
-      case 0:
+      case 1:
         list.addLast(**it1);
         ++(*it1);
         break;
-      case 1:
+      case 0:
         if (reverse)
           list.addLast(-(**it2));
         else
@@ -324,9 +326,13 @@ class SkipList : public BaseList<T> {
     size_t level;
     Node** next;
   };
+  struct MPair {
+    size_t ind;
+    Node* next;
+  };
   Node* first;
   Node* last;
-  Node* update[4];
+  vector<MPair> update;
   size_t randomLevel() {
     size_t level = 1;
     double p = 1;
@@ -351,19 +357,35 @@ class SkipList : public BaseList<T> {
     }
   }
   void getUpdate(size_t ind2) {
+    if (ind2 > this->size)
+      throw out_of_range("Wrong index");
     size_t ind = 0;
     Node* tmp = first;
-    for (size_t i = 0; i < 4; i++)
-      update[i] = nullptr;
-    if (ind < ind2) {
-      for (size_t i = 3; i >= 0; i--) {
-        if (tmp->level > i)
-          continue;
+    update.clear();
+    while (ind < ind2) {
+      if (tmp == nullptr)
+        break;
+      for (int i = tmp->level - 1; i >= 0; i--) {
+        if (ind + steps[i] >= ind2) {
+          MPair mp(static_cast<size_t>(i), tmp);
+          update.push_back(mp);
+        }
       }
+      ind++;
+      tmp = tmp->next[0];
     }
   }
-  void setUpdate(Node*& tmp) {
-
+  void setUpdate() {
+    for (auto& it : update) {
+      Node* tmpn = it.next;
+      for (size_t i = 0; i < steps[it.ind]; i++) {
+        tmpn = tmpn->next[0];
+        if (tmpn == nullptr)
+          break;
+      }
+      it.next->next[it.ind] = tmpn;
+    }
+    update.clear();
   }
 public:
   class SkipIterator : public Iterator {
@@ -375,7 +397,7 @@ public:
       return curr->val;
     }
     Iterator& operator++() {
-      curr = curr->next;
+      curr = curr->next[0];
       return *this;
     }
     bool operator!=(const Iterator& other) const {
@@ -398,7 +420,7 @@ public:
         first->val = tmp2->val;
         last = first;
         tmp->level = tmp2->level;
-        tmp->next = new Node*[tmp->level];
+        tmp->next = new Node*[tmp->level]{};
         for (size_t i = 0; i < tmp->level; i++)
           tmp->next[i] = nullptr;
       } else {
@@ -407,7 +429,7 @@ public:
         last = tmp;
         tmp->val = tmp2->val;
         tmp->level = tmp2->level;
-        tmp->next = new Node*[tmp->level];
+        tmp->next = new Node*[tmp->level]{};
         for (size_t i = 0; i < tmp->level; i++)
           tmp->next[i] = nullptr;
       }
@@ -481,8 +503,37 @@ public:
     setLevels(tmp);
     this->size++;
   }
-  void addLast(T val);
-  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
+  void addLast(T val) {
+    addAt(val, this->size);
+  }
+  void addSorted(T val, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func) {
+    size_t ind2 = 0;
+    Node* tmp = first;
+    while (tmp != nullptr && comp(tmp->val, val) == 1) {
+      bool f = false;
+      for (int i = tmp->level - 1; i >= 0; i--) {
+        if (tmp->next[i] != nullptr && comp( tmp->next[i]->val, val) == 1) {
+          ind2 += steps[i];
+          tmp = tmp->next[i];
+          f = true;
+          break;
+        }
+      }
+      if (!f)
+        tmp = tmp->next[0];
+    }
+    if (tmp != nullptr) {
+      switch (comp(tmp->val, val)) {
+      case 0: case 1:
+        addAt(val, ind2);
+        break;
+      default:
+        op(tmp->val, val);
+        break;
+      }
+    } else
+      addLast(val);
+  }
   void addAt(T val, size_t ind) {
     if (ind < 0 || ind > this->size)
       throw out_of_range("Index out of range");
@@ -491,9 +542,30 @@ public:
     tmp->level = randomLevel();
     tmp->val = val;
     tmp->next = new Node*[tmp->level];
-    tmp->next[0] = update[0]->next[0]->next[0];
-    setLevels(tmp);
-    setUpdate(tmp);
+    if (ind != 0) {
+      if (update.back().next->next[0] != nullptr)
+        tmp->next[0] = update.back().next->next[0]->next[0];
+      else
+        tmp->next[0] = nullptr;
+      update.back().next->next[0] = tmp;
+      update.pop_back();
+      setUpdate();
+    }
+    else {
+      tmp->next[0] = first;
+      first = tmp;
+    }
+    if (ind >= this->size - 1) {
+      for (size_t i = 0; i < tmp->level; i++)
+        tmp->next[i] = nullptr;
+    } else
+      setLevels(tmp);
+    if (ind == this->size)
+      last = tmp;
+    if (this->size == 0)
+      first = tmp;
+    this->size++;
+    update.clear();
   }
   T& getFirst() {
     if (first == nullptr)
@@ -505,7 +577,22 @@ public:
       throw out_of_range("List is empty");
     return last->val;
   }
-  T& getAt(size_t ind);
+  T& getAt(size_t ind) {
+    if (ind >= this->size)
+      throw out_of_range("Index out of range");
+    size_t ind2 = 0;
+    Node* tmp = first;
+    while (ind2 != ind) {
+      for (int i = tmp->level - 1; i >= 0; i--) {
+        if (ind2 + steps[i] <= ind) {
+          ind2 += steps[i];
+          tmp = tmp->next[i];
+          break;
+        }
+      }
+    }
+    return tmp->val;
+  }
   T delFirst() {
     if (this->size == 0)
       throw out_of_range("List is already empty");
@@ -519,11 +606,135 @@ public:
     this->size--;
     return tmp;
   }
-  T delLast();
-  T delAt(size_t ind);
-  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func);
-  void Merge(BaseList<T>* other);
-  void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false);
+  T delLast() {
+    return delAt(this->size - 1);
+  }
+  T delAt(size_t ind) {
+    if (ind < 0 || ind >= this->size)
+      throw out_of_range("Index out of range");
+    Node* tmp;
+    T val;
+    if (ind != 0) {
+      cout << "0";
+      getUpdate(ind);
+      tmp = update.back().next->next[0];
+      update.back().next->next[0] = tmp->next[0];
+      val = tmp->val;
+      delete[] tmp->next;
+      delete tmp;
+      if (ind == this->size - 1) {
+        last = update.back().next;
+      }
+      update.pop_back();
+      setUpdate();
+      cout << "0" << endl;
+    } else {
+      cout << "1";
+      tmp = first;
+      first = first->next[0];
+      val = tmp->val;
+      delete[] tmp->next;
+      delete tmp;
+      if (this->size == 1) {
+        first = nullptr;
+        last = nullptr;
+      }
+      cout << "1" << endl;
+    }
+    this->size--;
+    return val;
+  }
+  void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func) {
+    SkipList<T> list;
+    Node* tmp = first;
+    while (tmp != nullptr) {
+      list.addSorted(tmp->val, comp, op);
+      tmp = tmp->next[0];
+    }
+    swap(first, list.first);
+    swap(last, list.last);
+    this->size = list.size;
+  }
+  void Merge(BaseList<T>* other) {
+    if (this == other)
+      throw out_of_range("SelfAssign");
+    auto* begin = other->Begin();
+    auto* end = other->End();
+    SkipList<T> list;
+    TDynamicStack<T> st;
+    Node* tmp = first;
+    while (tmp != nullptr) {
+      st.Push(tmp->val);
+    }
+    for (auto* it = begin; *it != *end; ++(*it))
+      st.Push(**it);
+    delete begin;
+    delete end;
+    while (!st.isEmpty()) {
+      list.addFirst(st.Top());
+      st.Pop();
+    }
+    swap(first, list.first);
+    swap(last, list.last);
+    this->size = list.size;
+  }
+  void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false) {
+    if (this == other)
+      throw out_of_range("SelfAssign");
+    SkipList<T> list;
+    TDynamicStack<T> st;
+    auto* begin1 = Begin();
+    auto* end1 = End();
+    auto* begin2 = other->Begin();
+    auto* end2 = other->End();
+    auto* it1 = begin1;
+    auto* it2 = begin2;
+    int f;
+    while (*it1 != *end1 && *it2 != *end2) {
+      switch (comp(**it1, **it2)) {
+      case 1:
+        list.addLast(**it1);
+        ++(*it1);
+        break;
+      case 0:
+        if (reverse)
+          st.Push(-(**it2));
+        else
+          st.Push(**it2);
+        ++(*it2);
+        break;
+      default:
+        T tmp = **it1;
+        op(tmp, **it2);
+        st.Push(tmp);
+        ++(*it1);
+        ++(*it2);
+        break;
+      }
+    }
+    while (*it1 != *end1) {
+      st.Push(**it1);
+      ++(*it1);
+    }
+    while (*it2 != *end2) {
+      if (reverse)
+        st.Push(-(**it2));
+      else
+        st.Push(**it2);
+      ++(*it2);
+    }
+    while (!st.isEmpty()) {
+      list.addFirst(st.Top());
+      st.Pop();
+    }
+    swap(first, list.first);
+    swap(last, list.last);
+    swap(this->size, list.size);
+    delete begin1;
+    delete begin2;
+    delete end1;
+    delete end2;
+  }
   ~SkipList() {
     while (this->size != 0)
       delFirst();

@@ -144,3 +144,149 @@ TEST(TStdList, list_can_merge_sorted) {
   delete begin;
   delete end;
 }
+
+TEST(SkipList, slist_can_be_created) {
+  ASSERT_NO_FATAL_FAILURE(BaseList<int>* tmp = new SkipList<int>());
+  ASSERT_NO_FATAL_FAILURE(SkipList<int> tmp);
+}
+
+TEST(SkipList, slist_can_change_first) {
+  BaseList<int>* tmp = new SkipList<int>();
+  EXPECT_EQ(tmp->Size(), 0);
+  tmp->addFirst(1);
+  tmp->addFirst(2);
+  EXPECT_EQ(tmp->Size(), 2);
+  EXPECT_EQ(tmp->getFirst(), 2);
+  tmp->delFirst();
+  EXPECT_EQ(tmp->getFirst(), 1);
+  EXPECT_EQ(tmp->Size(), 1);
+  tmp->delFirst();
+  EXPECT_ANY_THROW(tmp->getFirst());
+  EXPECT_ANY_THROW(tmp->delFirst());
+  EXPECT_EQ(tmp->Size(), 0);
+  delete tmp;
+}
+
+TEST(SkipList, slist_can_change_last) {
+  BaseList<int>* tmp = new SkipList<int>();
+  tmp->addLast(1);
+  tmp->addLast(2);
+  EXPECT_EQ(tmp->Size(), 2);
+  EXPECT_EQ(tmp->getFirst(), 1);
+  EXPECT_EQ(tmp->getLast(), 2);
+  tmp->delLast();
+  EXPECT_EQ(tmp->getLast(), 1);
+  EXPECT_EQ(tmp->Size(), 1);
+  tmp->delLast();
+  EXPECT_ANY_THROW(tmp->getFirst());
+  EXPECT_ANY_THROW(tmp->delFirst());
+  EXPECT_ANY_THROW(tmp->getLast());
+  EXPECT_ANY_THROW(tmp->delLast());
+  EXPECT_EQ(tmp->Size(), 0);
+  delete tmp;
+}
+
+TEST(SkipList, slist_can_change_at) {
+  BaseList<int>* tmp = new SkipList<int>();
+  for (int i = 0; i < 10; i++) {
+    tmp->addLast(i);
+  }
+  tmp->addAt(99, 1);
+  EXPECT_EQ(tmp->Size(), 11);
+  EXPECT_EQ(tmp->getAt(1), 99);
+  tmp->delAt(10);
+  cout << "2" << endl;
+  EXPECT_EQ(tmp->Size(), 10);
+  EXPECT_EQ(tmp->getLast(), 8);
+  tmp->delAt(0);
+  cout << "3" << endl;
+  EXPECT_EQ(tmp->getFirst(), 99);
+  for (int i = 0; i < 9; i++)
+    tmp->delAt(0);
+  cout << "4" << endl;
+  EXPECT_ANY_THROW(tmp->delAt(0));
+  delete tmp;
+}
+
+TEST(SkipList, slist_can_add_sorted) {
+  BaseList<int>* tmp = new SkipList<int>();
+  for (int i = 0; i < 10; i++) {
+    tmp->addLast(i);
+  }
+  tmp->addSorted(10, CompareL<int>);
+  EXPECT_EQ(tmp->getLast(), 10);
+}
+
+TEST(SkipList, slist_can_sort) {
+  BaseList<int>* tmp = new SkipList<int>();
+  for (int i = 0; i < 10; i++) {
+    tmp->addFirst(i);
+  }
+  tmp->Sort(CompareL<int>);
+  for (int i = 0; i < 10; i++) {
+    EXPECT_EQ(tmp->getFirst(), i);
+    tmp->delFirst();
+  }
+  delete tmp;
+}
+
+TEST(SkipList, slist_can_be_ran_through) {
+  BaseList<int>* tmp = new SkipList<int>();
+  for (int i = 0; i < 10; i++) {
+    tmp->addLast(i);
+  }
+  auto* begin = tmp->Begin();
+  auto* end = tmp->End();
+  int i = 0;
+  for (auto* it = begin; *it != *end; ++(*it)) {
+    EXPECT_EQ(**it, i);
+    i++;
+  }
+  delete tmp;
+  delete begin;
+  delete end;
+}
+
+TEST(SkipList, slist_can_merge) {
+  BaseList<int>* tmp = new SkipList<int>();
+  BaseList<int>* tmp2 = new SkipList<int>();
+  for (int i = 0; i < 10; i++) {
+    tmp->addLast(i);
+    tmp2->addLast(i + 10);
+  }
+  tmp->Merge(tmp2);
+  auto* begin = tmp->Begin();
+  auto* end = tmp->End();
+  int i = 0;
+  for (auto* it = begin; *it != *end; ++(*it)) {
+    EXPECT_EQ(**it, i);
+    i++;
+  }
+  EXPECT_EQ(tmp->Size(), 20);
+  delete tmp;
+  delete tmp2;
+  delete begin;
+  delete end;
+}
+
+TEST(SkipList, slist_can_merge_sorted) {
+  BaseList<int>* tmp = new SkipList<int>();
+  BaseList<int>* tmp2 = new SkipList<int>();
+  for (int i = 0; i < 20; i += 2) {
+    tmp->addLast(i);
+    tmp2->addLast(i + 1);
+  }
+  tmp->mergeSorted(tmp2, CompareL<int>);
+  auto* begin = tmp->Begin();
+  auto* end = tmp->End();
+  int i = 0;
+  for (auto* it = begin; *it != *end; ++(*it)) {
+    EXPECT_EQ(**it, i);
+    i++;
+  }
+  EXPECT_EQ(tmp->Size(), 20);
+  delete tmp;
+  delete tmp2;
+  delete begin;
+  delete end;
+}

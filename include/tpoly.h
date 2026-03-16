@@ -184,16 +184,10 @@ public:
 
 template <typename T, template<typename> class List = TStdList>
 int CompareM(Monom<T, List> a, Monom<T, List> b) {
-  /*for (size_t i = 0; i < 4; i++) {
-    if(a.getAt(i) < b.getAt(i))
-      return 1;
-    if(a.getAt(i) > b.getAt(i))
-      return 0;
-  }*/
   if (a.getN() < b.getN())
-    return 1;
-  if (a.getN() > b.getN())
     return 0;
+  if (a.getN() > b.getN())
+    return 1;
   return -1;
 }
 
