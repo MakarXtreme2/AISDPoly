@@ -170,14 +170,18 @@ TEST(SkipList, slist_can_change_first) {
 TEST(SkipList, slist_can_change_last) {
   BaseList<int>* tmp = new SkipList<int>();
   tmp->addLast(1);
+  tmp->Print();
   tmp->addLast(2);
+  tmp->Print();
   EXPECT_EQ(tmp->Size(), 2);
   EXPECT_EQ(tmp->getFirst(), 1);
   EXPECT_EQ(tmp->getLast(), 2);
   tmp->delLast();
+  tmp->Print();
   EXPECT_EQ(tmp->getLast(), 1);
   EXPECT_EQ(tmp->Size(), 1);
   tmp->delLast();
+  tmp->Print();
   EXPECT_ANY_THROW(tmp->getFirst());
   EXPECT_ANY_THROW(tmp->delFirst());
   EXPECT_ANY_THROW(tmp->getLast());
@@ -188,22 +192,21 @@ TEST(SkipList, slist_can_change_last) {
 
 TEST(SkipList, slist_can_change_at) {
   BaseList<int>* tmp = new SkipList<int>();
-  for (int i = 0; i < 10; i++) {
-    tmp->addLast(i);
+  for (int i = 9; i >= 0; i--) {
+    tmp->addFirst(i);
   }
+  tmp->Print();
   tmp->addAt(99, 1);
+  tmp->Print();
   EXPECT_EQ(tmp->Size(), 11);
   EXPECT_EQ(tmp->getAt(1), 99);
   tmp->delAt(10);
-  cout << "2" << endl;
   EXPECT_EQ(tmp->Size(), 10);
   EXPECT_EQ(tmp->getLast(), 8);
   tmp->delAt(0);
-  cout << "3" << endl;
   EXPECT_EQ(tmp->getFirst(), 99);
   for (int i = 0; i < 9; i++)
     tmp->delAt(0);
-  cout << "4" << endl;
   EXPECT_ANY_THROW(tmp->delAt(0));
   delete tmp;
 }
@@ -222,7 +225,9 @@ TEST(SkipList, slist_can_sort) {
   for (int i = 0; i < 10; i++) {
     tmp->addFirst(i);
   }
+  tmp->Print();
   tmp->Sort(CompareL<int>);
+  tmp->Print();
   for (int i = 0; i < 10; i++) {
     EXPECT_EQ(tmp->getFirst(), i);
     tmp->delFirst();

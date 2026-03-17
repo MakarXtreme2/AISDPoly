@@ -39,6 +39,7 @@ public:
   virtual void Sort(int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func) = 0;
   virtual void Merge(BaseList<T>* other) = 0;
   virtual void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false) = 0;
+  virtual void Print() = 0;
   virtual ~BaseList() = default;
 };
 
@@ -175,6 +176,7 @@ public:
     tmp->next->next = tmp2;
     this->size++;
   }
+  void Print() {}
   T& getFirst() {
     if (this->size == 0)
       throw out_of_range("List is empty");
@@ -346,7 +348,7 @@ class SkipList : public BaseList<T> {
     return level;
   }
   void setLevels(Node* tmp) {
-    size_t lvl = 1;
+    size_t lvl = 0;
     Node* tmp2 = tmp->next[0];
     for (size_t step = 1; step <= steps[tmp->level - 1]; step++) {
       if (tmp2 == nullptr)
@@ -419,6 +421,7 @@ public:
         first = new Node();
         first->val = tmp2->val;
         last = first;
+        tmp = first;
         tmp->level = tmp2->level;
         tmp->next = new Node*[tmp->level]{};
         for (size_t i = 0; i < tmp->level; i++)
@@ -455,6 +458,7 @@ public:
         first = new Node();
         first->val = tmp2->val;
         last = first;
+        tmp = first;
         tmp->level = tmp2->level;
         tmp->next = new Node*[tmp->level];
         for (size_t i = 0; i < tmp->level; i++)
@@ -491,6 +495,24 @@ public:
   const Iterator* End() const {
     return new SkipIterator(last->next[0], last->next[0]);
   }
+  void Print() {
+    Node* tmp = first;
+    while (tmp != nullptr) {
+      cout << "{" << tmp->val << ", (";
+      for (int i = 0; i < tmp->level - 1; i++) {
+        if (tmp->next[i] == nullptr)
+          cout << "nullptr, ";
+        else
+          cout << tmp->next[i]->val << ", ";
+      }
+      if (tmp->next[tmp->level - 1] == nullptr)
+        cout << "nullptr)} ";
+      else
+        cout << tmp->next[tmp->level - 1]->val << ")} ";
+      tmp = tmp->next[0];
+    }
+    cout << endl;
+  }
   void addFirst(T val) {
     Node* tmp = new Node();
     tmp->val = val;
@@ -519,8 +541,10 @@ public:
           break;
         }
       }
-      if (!f)
+      if (!f) {
         tmp = tmp->next[0];
+        ind2++;
+      }
     }
     if (tmp != nullptr) {
       switch (comp(tmp->val, val)) {
@@ -537,14 +561,14 @@ public:
   void addAt(T val, size_t ind) {
     if (ind < 0 || ind > this->size)
       throw out_of_range("Index out of range");
-    getUpdate(ind);
     Node* tmp = new Node();
     tmp->level = randomLevel();
     tmp->val = val;
     tmp->next = new Node*[tmp->level];
     if (ind != 0) {
+      getUpdate(ind);
       if (update.back().next->next[0] != nullptr)
-        tmp->next[0] = update.back().next->next[0]->next[0];
+        tmp->next[0] = update.back().next->next[0];
       else
         tmp->next[0] = nullptr;
       update.back().next->next[0] = tmp;
@@ -556,7 +580,7 @@ public:
       first = tmp;
     }
     if (ind >= this->size - 1) {
-      for (size_t i = 0; i < tmp->level; i++)
+      for (size_t i = 1; i < tmp->level; i++)
         tmp->next[i] = nullptr;
     } else
       setLevels(tmp);
@@ -615,7 +639,6 @@ public:
     Node* tmp;
     T val;
     if (ind != 0) {
-      cout << "0";
       getUpdate(ind);
       tmp = update.back().next->next[0];
       update.back().next->next[0] = tmp->next[0];
@@ -627,9 +650,7 @@ public:
       }
       update.pop_back();
       setUpdate();
-      cout << "0" << endl;
     } else {
-      cout << "1";
       tmp = first;
       first = first->next[0];
       val = tmp->val;
@@ -639,7 +660,6 @@ public:
         first = nullptr;
         last = nullptr;
       }
-      cout << "1" << endl;
     }
     this->size--;
     return val;
