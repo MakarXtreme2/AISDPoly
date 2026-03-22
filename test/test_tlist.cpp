@@ -215,6 +215,7 @@ TEST(SkipList, slist_can_change_at) {
 
 TEST(SkipList, slist_can_add_sorted) {
   BaseList<int>* tmp = new SkipList<int>();
+  BaseList<int>* tmp2 = new SkipList<int>();
   for (int i = 0; i < 10; i++) {
     tmp->addLast(i);
   }
@@ -227,6 +228,9 @@ TEST(SkipList, slist_can_add_sorted) {
   tmp->addSorted(10, CompareL<int>);
   tmp->Print();
   EXPECT_EQ(tmp->getAt(tmp->Size() - 3), 13);
+  tmp2->addSorted(0, CompareL<int>);
+  tmp2->addSorted(1, CompareL<int>);
+  EXPECT_EQ(tmp2->getLast(), 1);
 }
 
 TEST(SkipList, slist_can_sort) {

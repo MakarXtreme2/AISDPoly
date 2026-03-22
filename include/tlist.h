@@ -19,7 +19,6 @@ public:
     virtual T& operator*() = 0;
     virtual Iterator& operator++() = 0;
     virtual bool operator!=(const Iterator& other) const = 0;
-    virtual bool hasNext();
     virtual ~Iterator() = default;
   };
   virtual Iterator* Begin() = 0;
@@ -66,9 +65,6 @@ class TStdList : public BaseList<T> {
     Iterator& operator++() {
       curr = curr->next;
       return *this;
-    }
-    bool hasNext() {
-      return curr->next != nullptr;
     }
     bool operator!=(const Iterator& other) const {
       const StdIterator& otherIt = static_cast<const StdIterator&>(other);
@@ -358,9 +354,6 @@ public:
       curr = curr->next[0];
       return *this;
     }
-    bool hasNext() {
-      return curr->next[0] != nullptr;
-    }
     bool operator!=(const Iterator& other) const {
       const SkipIterator& otherIt = static_cast<const SkipIterator&>(other);
       return curr != otherIt.curr;
@@ -518,7 +511,7 @@ public:
         Node* update[maxlevel]{};
         for (size_t i = 0; i < tmp->level; i++)
           update[i] = first[i];
-        for (int i = maxlevel - 1; i >= 0; i--) {
+        for (int i = tmp->level - 1; i >= 0; i--) {
           while (tmp->next[i] != nullptr && comp(tmp->next[i]->val, val) == 1) {
             for (size_t j = 0; j < tmp->level; j++)
               update[j] = tmp;
