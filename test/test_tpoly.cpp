@@ -155,3 +155,13 @@ TEST(Polynom, polynom_can_count_same_value) {
   p1 = p1 * p1;
   EXPECT_EQ(p1.Count(2), 225);
 }
+
+TEST(Polynom, polynom_can_count_same_value_skip) {
+  Polynom<int, SkipList> p1(1);
+  Monom<int, SkipList> mn1(1, 1);
+  Monom<int, SkipList> mn2(1, 2);
+  Monom<int, SkipList> mn3(1, 3);
+  p1 = p1 + mn1 + mn2 + mn3;
+  p1 = p1 * p1;
+  EXPECT_EQ(p1.Count(2), 225);
+}

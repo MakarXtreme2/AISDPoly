@@ -19,6 +19,7 @@ public:
     virtual T& operator*() = 0;
     virtual Iterator& operator++() = 0;
     virtual bool operator!=(const Iterator& other) const = 0;
+    virtual bool hasNext();
     virtual ~Iterator() = default;
   };
   virtual Iterator* Begin() = 0;
@@ -65,6 +66,9 @@ class TStdList : public BaseList<T> {
     Iterator& operator++() {
       curr = curr->next;
       return *this;
+    }
+    bool hasNext() {
+      return curr->next != nullptr;
     }
     bool operator!=(const Iterator& other) const {
       const StdIterator& otherIt = static_cast<const StdIterator&>(other);
@@ -402,11 +406,26 @@ public:
       curr = curr->next[0];
       return *this;
     }
+    bool hasNext() {
+      return curr->next[0] != nullptr;
+    }
     bool operator!=(const Iterator& other) const {
       const SkipIterator& otherIt = static_cast<const SkipIterator&>(other);
       return curr != otherIt.curr;
     }
   };
+  Iterator* Begin() {
+    return new SkipIterator(first, last->next[0]);
+  }
+  Iterator* End() {
+    return new SkipIterator(last->next[0], last->next[0]);
+  }
+  const Iterator* Begin() const {
+    return new SkipIterator(first, last->next[0]);
+  }
+  const Iterator* End() const {
+    return new SkipIterator(last->next[0], last->next[0]);
+  }
   SkipList() {
     first = nullptr;
     last = nullptr;
@@ -445,9 +464,9 @@ public:
     }
     this->size = other.size;
   }
-  SkipList<T>& operator=(const SkipList<T>& other) {
-    if (this == &other)
-      return out_of_range("SelfAssign");
+  SkipList<T>& operator=(const SkipList<T> other) {
+    //if (this == &other)
+      //return out_of_range("SelfAssign");
     while (this->size != 0)
       delFirst();
     last = nullptr;
@@ -482,18 +501,6 @@ public:
     }
     this->size = other.size;
     return *this;
-  }
-  Iterator* Begin() {
-    return new SkipIterator(first, last->next[0]);
-  }
-  Iterator* End() {
-    return new SkipIterator(last->next[0], last->next[0]);
-  }
-  const Iterator* Begin() const {
-    return new SkipIterator(first, last->next[0]);
-  }
-  const Iterator* End() const {
-    return new SkipIterator(last->next[0], last->next[0]);
   }
   void Print() {
     Node* tmp = first;
@@ -681,13 +688,16 @@ public:
     auto* begin = other->Begin();
     auto* end = other->End();
     SkipList<T> list;
-    TDynamicStack<T> st;
+    TDynamicStack<T> st(this->size + other->Size());
     Node* tmp = first;
     while (tmp != nullptr) {
       st.Push(tmp->val);
+      tmp = tmp->next[0];
     }
-    for (auto* it = begin; *it != *end; ++(*it))
+    for (auto* it = begin; *it != *end; ++(*it)) {
+      cout << **it << endl;
       st.Push(**it);
+    }
     delete begin;
     delete end;
     while (!st.isEmpty()) {
@@ -696,13 +706,13 @@ public:
     }
     swap(first, list.first);
     swap(last, list.last);
-    this->size = list.size;
+    swap(this->size, list.size);
   }
   void mergeSorted(BaseList<T>* other, int (*comp)(T a, T b), void (*op)(T& a, T& b) = default_func, bool reverse = false) {
     if (this == other)
       throw out_of_range("SelfAssign");
     SkipList<T> list;
-    TDynamicStack<T> st;
+    TDynamicStack<T> st(this->size + other->Size());
     auto* begin1 = Begin();
     auto* end1 = End();
     auto* begin2 = other->Begin();
@@ -713,7 +723,7 @@ public:
     while (*it1 != *end1 && *it2 != *end2) {
       switch (comp(**it1, **it2)) {
       case 1:
-        list.addLast(**it1);
+        st.Push(**it1);
         ++(*it1);
         break;
       case 0:
