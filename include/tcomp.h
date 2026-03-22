@@ -11,7 +11,11 @@ int CompareG(T a, T b) {
 
 template <typename T>
 int CompareL(T a, T b) {
-  return a < b ? 1 : 0;
+  if (a < b)
+    return 1;
+  if (a > b)
+    return 0;
+  return -1;
 }
 
 // Comparator where first value is equal to second

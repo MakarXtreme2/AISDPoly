@@ -205,8 +205,10 @@ TEST(SkipList, slist_can_change_at) {
   EXPECT_EQ(tmp->getLast(), 8);
   tmp->delAt(0);
   EXPECT_EQ(tmp->getFirst(), 99);
-  for (int i = 0; i < 9; i++)
+  for (int i = 0; i < 9; i++) {
+    tmp->Print();
     tmp->delAt(0);
+  }
   EXPECT_ANY_THROW(tmp->delAt(0));
   delete tmp;
 }
@@ -217,7 +219,14 @@ TEST(SkipList, slist_can_add_sorted) {
     tmp->addLast(i);
   }
   tmp->addSorted(10, CompareL<int>);
+  tmp->Print();
   EXPECT_EQ(tmp->getLast(), 10);
+  tmp->addLast(15);
+  tmp->addLast(20);
+  tmp->addSorted(13, CompareL<int>);
+  tmp->addSorted(10, CompareL<int>);
+  tmp->Print();
+  EXPECT_EQ(tmp->getAt(tmp->Size() - 3), 13);
 }
 
 TEST(SkipList, slist_can_sort) {
@@ -294,4 +303,19 @@ TEST(SkipList, slist_can_merge_sorted) {
   delete tmp2;
   delete begin;
   delete end;
+}
+
+TEST(SkipList, slist_can_assign) {
+  SkipList<int> list, list2;
+  for (int i = 0; i < 10; i++) {
+    list.addLast(i);
+  }
+  list2 = list;
+  for (int i = 0; i < 10; i++) {
+    EXPECT_EQ(list2.getAt(i), i);
+  }
+  EXPECT_EQ(list.Size(), list2.Size());
+  list.Print();
+  list2.Print();
+  list2.printFE();
 }

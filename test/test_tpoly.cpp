@@ -158,10 +158,16 @@ TEST(Polynom, polynom_can_count_same_value) {
 
 TEST(Polynom, polynom_can_count_same_value_skip) {
   Polynom<int, SkipList> p1(1);
+  cout << p1 << endl;
   Monom<int, SkipList> mn1(1, 1);
+  cout << mn1 << endl;
   Monom<int, SkipList> mn2(1, 2);
+  cout << mn2 << endl;
   Monom<int, SkipList> mn3(1, 3);
+  cout << mn3 << endl;
   p1 = p1 + mn1 + mn2 + mn3;
+  cout << p1 << endl;
   p1 = p1 * p1;
+  cout << p1 << endl;
   EXPECT_EQ(p1.Count(2), 225);
 }
