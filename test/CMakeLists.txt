@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.31)
+include_directories(${ANTLR_INCLUDE_DIR})
+target_link_libraries(parser ${ANTLR_LIBRARY} tpoly)
 file(GLOB srcs "*.cpp")
 add_executable(mtest ${srcs})
-target_link_libraries(mtest tstack tqueue tarith tcomp tpoly tlist gtest)
+target_link_libraries(mtest tstack tqueue tarith tcomp tpoly tlist gtest parser)
 add_test(NAME TestAllThings COMMAND mtest)
