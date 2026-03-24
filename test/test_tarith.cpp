@@ -304,3 +304,19 @@ TEST(ICounter, icounter_work_correct_with_polynom_repeat) {
   arth.LaunchAllHandlers();
   EXPECT_EQ(arth.GetResult().Count(2, 3), 180);
 }
+
+TEST(ITree, itree_work_correct_with_polynom) {
+  TArith<Polynom<int>> arth("10 / 2 + 6 * (20 - 3)");
+  ILexemeTranslatorP<int> hand1(arth);
+  ICorrectCheckerP<int> hand2(arth);
+  IPostfixMaker<Polynom<int>> hand3(arth);
+  ITreeCreator<Polynom<int>> hand4(arth);
+  ITreeCounter<Polynom<int>> hand5(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.AddHandler(hand3);
+  arth.AddHandler(hand4);
+  arth.AddHandler(hand5);
+  arth.LaunchAllHandlers();
+  EXPECT_EQ(arth.GetResult().Count(), 107);
+}

@@ -584,7 +584,6 @@ public:
   void Do() {
     TDynamicQueue<Lexeme<T>> qe = this->tarith->LexemsStreamInt();
     TDynamicQueue<Lexeme<T>> qe2(qe.Size());
-    TDynamicStack<Lexeme<T>> stlex(qe.Size());
     TDynamicStack<Lexeme<T>> st(qe.Size());
     size_t len = qe.Size();
     size_t curr = 0;
@@ -595,7 +594,6 @@ public:
       switch (tmplx.Type) {
       case number: case polynom:
         qe2.Push(tmplx);
-        stlex.Push(tmplx);
         posttmp += tmplx.Text;
         if (!(curr == len - 1) || !st.isEmpty())
           posttmp += " ";
@@ -609,7 +607,6 @@ public:
           else {
             while (st.Top().Priority <= tmplx.Priority && st.Top().Type != skobe) {
               qe2.Push(st.Top());
-              stlex.Push(st.Top());
               posttmp += st.Top().Text;
               st.Pop();
               if (!(curr == len - 1) || !st.isEmpty())
@@ -627,7 +624,6 @@ public:
         else {
           while (st.Top().Type != skobe) {
             qe2.Push(st.Top());
-            stlex.Push(st.Top());
             posttmp += st.Top().Text;
             st.Pop();
             if (!(curr == len - 1) || !st.isEmpty())
@@ -646,14 +642,12 @@ public:
     curr = 0;
     while (!st.isEmpty()) {
       qe2.Push(st.Top());
-      stlex.Push(st.Top());
       posttmp += st.Top().Text;
       st.Pop();
       if (!(curr == len - 1))
         posttmp += " ";
     }
     this->lexems_postfix_int() = qe2;
-    this->lexems_postfix_stack() = stlex;
     this->postfix_str() = posttmp;
   }
 };
@@ -1088,7 +1082,7 @@ Expr<T>* setBiOp(char op, Expr<T>* left, Expr<T>* right) {
 
 template <typename T>
 Expr<T>* setSiOp(char op, Expr<T>* part) {
-  return new BiOp<T>(op, part);
+  return new SiOp<T>(op, part);
 }
 
 template <typename T, template <typename> class List = TStdList>
@@ -1099,8 +1093,8 @@ public:
   }
   void Do() {
     TDynamicQueue<Lexeme<T>> qe = this->lexems_postfix_int();
-    TDynamicStack<Expr<T>*> tmp(qe->Size());
-    while (!qe->isEmpty()) {
+    TDynamicStack<Expr<T>*> tmp(qe.Size());
+    while (!qe.isEmpty()) {
       Expr<T>* now;
       Expr<T>* left;
       Expr<T>* right;
