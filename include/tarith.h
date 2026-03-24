@@ -38,6 +38,105 @@ enum LexemeType {
   word
 };
 
+template <typename T>
+class EPoly;
+
+template <typename T>
+class BiOp;
+
+template <typename T>
+class SiOp;
+
+template <typename T>
+class Visitor {
+public:
+  virtual T visitEPoly(EPoly<T>* poly) = 0;
+  virtual T visitBiOp(BiOp<T>* op) = 0;
+  virtual T visitSiOp(SiOp<T>* op) = 0;
+};
+
+template <typename T>
+class Expr {
+public:
+  virtual T accept(Visitor<T>* v) = 0;
+};
+
+template <typename T>
+class EPoly : public Expr<T> {
+  T val;
+public:
+  EPoly(T _val) : val(_val) {}
+  T getVal() { return val; }
+  T accept(Visitor<T>* v) {
+    return v->visitEPoly(this);
+  }
+};
+
+template <typename T>
+class BiOp : public Expr<T> {
+  char op;
+  Expr<T>* left;
+  Expr<T>* right;
+public:
+  BiOp(char _op, Expr<T>* _left, Expr<T>* _right) :
+    op(_op), left(_left), right(_right) {}
+  T accept(Visitor<T>* v) {
+    return v->visitBiOp(this);
+  }
+  Expr<T>* Left() { return left; }
+  Expr<T>* Right() { return right; }
+  char Op() { return op; }
+};
+
+template <typename T>
+class SiOp : public Expr<T> {
+  char op;
+  Expr<T>* part;
+public:
+  SiOp(char _op, Expr<T>* _part) :
+    op(_op), part(_part) {}
+  T accept(Visitor<T>* v) {
+    return v->visitSiOp(this);
+  }
+  Expr<T>* Part() { return part; }
+  char Op() { return op; }
+};
+
+template <typename T>
+class CalcVisitor : public Visitor<T> {
+public:
+  T visitEPoly(EPoly<T>* poly) {
+    return poly->getVal();
+  }
+  T visitBiOp(BiOp<T>* op) {
+    T left = op->Left()->accept(this);
+    T right = op->Right()->accept(this);
+    switch (op->Op()) {
+    case '+':
+      return left + right;
+      break;
+    case '-':
+      return left - right;
+      break;
+    case '*':
+      return left * right;
+      break;
+    case '/':
+      return left / right;
+      break;
+    default:
+      throw out_of_range("Unknown op");
+      break;
+    }
+  }
+  T visitSiOp(SiOp<T>* op) {
+    T part = op->Part()->accept(this);
+    if (op->Op() == '-')
+      return -part;
+    return part;
+  }
+};
+
 // Structure TPair is used for making state machine 
 
 template <typename T>
@@ -148,6 +247,8 @@ protected:
   string postfix_str;
   TDynamicQueue<Lexeme<T>> lexems_stream_int;
   TDynamicQueue<Lexeme<T>> lexems_postfix_int;
+  TDynamicStack<Lexeme<T>> lexems_postfix_stack;
+  Expr<T>* root;
   friend class IHandler<T>;
 public:
   TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size) {
@@ -158,6 +259,8 @@ public:
   string PostFixStr() { return postfix_str; }
   TDynamicQueue<Lexeme<T>> LexemsStreamInt() { return lexems_stream_int; }
   TDynamicQueue<Lexeme<T>> LexemsPostfixInt() { return lexems_postfix_int; }
+  TDynamicStack<Lexeme<T>> LexemsPostfixStack() { return lexems_postfix_stack; }
+  Expr<T>* Root() { return root; }
   T& GetResult() { return result; }
 };
 
@@ -171,6 +274,8 @@ protected:
   string &postfix_str() { return tarith->postfix_str; }
   TDynamicQueue<Lexeme<T>> &lexems_stream_int() { return tarith->lexems_stream_int;}
   TDynamicQueue<Lexeme<T>> &lexems_postfix_int() { return tarith->lexems_postfix_int; }
+  TDynamicStack<Lexeme<T>> &lexems_postfix_stack() { return tarith->lexems_postfix_stack; }
+  Expr<T>*& root() { return tarith->root; }
   T& result() { return tarith->result; }
 
 public:
@@ -479,6 +584,7 @@ public:
   void Do() {
     TDynamicQueue<Lexeme<T>> qe = this->tarith->LexemsStreamInt();
     TDynamicQueue<Lexeme<T>> qe2(qe.Size());
+    TDynamicStack<Lexeme<T>> stlex(qe.Size());
     TDynamicStack<Lexeme<T>> st(qe.Size());
     size_t len = qe.Size();
     size_t curr = 0;
@@ -489,6 +595,7 @@ public:
       switch (tmplx.Type) {
       case number: case polynom:
         qe2.Push(tmplx);
+        stlex.Push(tmplx);
         posttmp += tmplx.Text;
         if (!(curr == len - 1) || !st.isEmpty())
           posttmp += " ";
@@ -502,6 +609,7 @@ public:
           else {
             while (st.Top().Priority <= tmplx.Priority && st.Top().Type != skobe) {
               qe2.Push(st.Top());
+              stlex.Push(st.Top());
               posttmp += st.Top().Text;
               st.Pop();
               if (!(curr == len - 1) || !st.isEmpty())
@@ -519,6 +627,7 @@ public:
         else {
           while (st.Top().Type != skobe) {
             qe2.Push(st.Top());
+            stlex.Push(st.Top());
             posttmp += st.Top().Text;
             st.Pop();
             if (!(curr == len - 1) || !st.isEmpty())
@@ -537,12 +646,14 @@ public:
     curr = 0;
     while (!st.isEmpty()) {
       qe2.Push(st.Top());
+      stlex.Push(st.Top());
       posttmp += st.Top().Text;
       st.Pop();
       if (!(curr == len - 1))
         posttmp += " ";
     }
     this->lexems_postfix_int() = qe2;
+    this->lexems_postfix_stack() = stlex;
     this->postfix_str() = posttmp;
   }
 };
@@ -962,5 +1073,74 @@ public:
     }
     this->lexems_stream_int() = *qe;
     printExceptions();
+  }
+};
+
+template <typename T>
+Expr<T>* setVal(T val) {
+  return new EPoly<T>(val);
+}
+
+template <typename T>
+Expr<T>* setBiOp(char op, Expr<T>* left, Expr<T>* right) {
+  return new BiOp<T>(op, left, right);
+}
+
+template <typename T>
+Expr<T>* setSiOp(char op, Expr<T>* part) {
+  return new BiOp<T>(op, part);
+}
+
+template <typename T, template <typename> class List = TStdList>
+class ITreeCreator : public IHandler<T> {
+public:
+  ITreeCreator(TArith<T>& _tarith) {
+    this->tarith = &_tarith;
+  }
+  void Do() {
+    TDynamicQueue<Lexeme<T>> qe = this->lexems_postfix_int();
+    TDynamicStack<Expr<T>*> tmp(qe->Size());
+    while (!qe->isEmpty()) {
+      Expr<T>* now;
+      Expr<T>* left;
+      Expr<T>* right;
+      switch (qe.Top().Type) {
+      case binary_operation:
+        right = tmp.Top();
+        tmp.Pop();
+        left = tmp.Top();
+        tmp.Pop();
+        now = setBiOp(qe.Top().Text[0], left, right);
+        tmp.Push(now);
+        break;
+      case single_operation:
+        left = tmp.Top();
+        tmp.Pop();
+        now = setSiOp(qe.Top().Text[0], left);
+        tmp.Push(now);
+        break;
+      case number: case polynom:
+        now = setVal(qe.Top().Value);
+        tmp.Push(now);
+        break;
+      default:
+        break;
+      }
+      qe.Pop();
+    }
+    this->root() = tmp.Top();
+  }
+};
+
+template <typename T, template <typename> class List = TStdList>
+class ITreeCounter : public IHandler<T> {
+public:
+  ITreeCounter(TArith<T>& _tarith) {
+    this->tarith = &_tarith;
+  }
+  void Do() {
+    CalcVisitor<T> visitor;
+    T res = this->root()->accept(&visitor);
+    this->result() = res;
   }
 };
