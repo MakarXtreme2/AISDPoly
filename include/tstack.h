@@ -8,7 +8,7 @@ template <typename T>
 class TDynamicStack {
   T* arr;
   size_t sz;
-  size_t curr;
+  long long curr;
 
   void changeSize() {
     TDynamicStack<T> tmp(sz + 1);
@@ -36,6 +36,11 @@ public:
     if (isEmpty())
       throw out_of_range("Stack is Empty");
     return arr[curr];
+  }
+
+  void Clear() {
+    sz = 0;
+    curr = -1;
   }
 
   void Pop() {

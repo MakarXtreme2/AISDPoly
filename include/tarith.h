@@ -59,6 +59,7 @@ template <typename T>
 class Expr {
 public:
   virtual T accept(Visitor<T>* v) = 0;
+  virtual ~Expr() = default;
 };
 
 template <typename T>
@@ -134,6 +135,25 @@ public:
     if (op->Op() == '-')
       return -part;
     return part;
+  }
+};
+
+template <typename T>
+class RemoveVisitor : public Visitor<T> {
+public:
+  T visitEPoly(EPoly<T>* poly) {
+    delete poly;
+    return 0;
+  }
+  T visitBiOp(BiOp<T>* op) {
+    op->Left()->accept(this);
+    op->Right()->accept(this);
+    delete op;
+    return 0;
+  }
+  T visitSiOp(SiOp<T>* op) {
+    op->Part()->accept(this);
+    delete op;
   }
 };
 
@@ -251,7 +271,7 @@ protected:
   Expr<T>* root;
   friend class IHandler<T>;
 public:
-  TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size) {
+  TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size), root(nullptr) {
     inf_str = _inf_str;
     postfix_str = "";
   }
@@ -262,6 +282,11 @@ public:
   TDynamicStack<Lexeme<T>> LexemsPostfixStack() { return lexems_postfix_stack; }
   Expr<T>* Root() { return root; }
   T& GetResult() { return result; }
+  virtual ~TMaker() {
+    RemoveVisitor<T> rvis;
+    if (root != nullptr)
+      root->accept(&rvis);
+  }
 };
 
 // Just class interface for handlers
@@ -1087,11 +1112,19 @@ Expr<T>* setSiOp(char op, Expr<T>* part) {
 
 template <typename T, template <typename> class List = TStdList>
 class ITreeCreator : public IHandler<T> {
+  void freeTree() {
+    RemoveVisitor<T> rvis;
+    this->root()->accept(&rvis);
+  }
 public:
   ITreeCreator(TArith<T>& _tarith) {
     this->tarith = &_tarith;
   }
   void Do() {
+    if (this->root() != nullptr) {
+      freeTree();
+      this->root() = nullptr;
+    }
     TDynamicQueue<Lexeme<T>> qe = this->lexems_postfix_int();
     TDynamicStack<Expr<T>*> tmp(qe.Size());
     while (!qe.isEmpty()) {
