@@ -182,11 +182,11 @@ class AVLTree {
         else if (tmp == parent->right)
           parent->balance++;
         if (parent->balance == 2) {
-          smallLeftRotate(tmp);
+          smallLeftRotate(parent);
           return;
         }
         else if (parent->balance == -2) {
-          smallRightRotate(tmp);
+          smallRightRotate(parent);
           return;
         }
         tmp = parent;
@@ -206,9 +206,9 @@ class AVLTree {
         else if (tmp == parent->right)
           parent->balance++;
         if (parent->balance == 2)
-          smallLeftRotate(tmp);
+          smallLeftRotate(parent);
         else if (parent->balance == -2)
-          smallRightRotate(tmp);
+          smallRightRotate(parent);
         tmp = parent;
       }
     }
