@@ -1,5 +1,8 @@
 #pragma once
 #include "tstack.h"
+#include <iostream>
+
+using namespace std;
 
 template <typename T>
 class AVLTree {
@@ -77,28 +80,85 @@ class AVLTree {
   }
   void smallLeftRotate(Node*& tmp) {
     Node* right = tmp->right;
-    if (right->balance < 0)
+    bool f = false;
+    bool ff = false;
+    if (tmp->balance == 1)
+      f = true;
+    if (right->balance < 0) {
       smallRightRotate(right);
+      ff = true;
+    }
+    if (!f) {
+      tmp->balance = 0;
+      right->balance = 0;
+    } else {
+      if (right->balance == -1) {
+        tmp->balance = 0;
+        right->balance = -2;
+      } else if (right->balance == 1) {
+        tmp->balance = -1;
+        right->balance = -1;
+      }
+      else {
+        tmp->balance = 0;
+        right->balance = 0;
+      }
+    }
+    if (ff) {
+      if (right->balance == 1) {
+        right->balance = 0;
+        tmp->balance = 0;
+      } else if (right->balance == 2) {
+        right->balance = 0;
+        tmp->balance = -1;
+      }
+    }
     Node* l = tmp->left;
     Node* m = right->left;
     Node* r = right->right;
     right->left = tmp;
     tmp->right = m;
-    tmp->balance = 0;
-    right->balance = 0;
     tmp = right;
   }
   void smallRightRotate(Node*& tmp) {
     Node* left = tmp->left;
-    if (left->balance > 0)
+    bool f = false;
+    bool ff = false;
+    if (tmp->balance == -1)
+      f = true;
+    if (left->balance > 0) {
       smallLeftRotate(left);
+      ff = true;
+    }
+    if (!f) {
+      tmp->balance = 0;
+      left->balance = 0;
+    } else {
+      if (left->balance == 1) {
+        tmp->balance = 0;
+        left->balance = 2;
+      } else if (left->balance == -1) {
+        tmp->balance = 1;
+        left->balance = 1;
+      } else {
+        tmp->balance = 0;
+        left->balance = 0;
+      }
+    }
+    if (ff) {
+      if (left->balance == -1) {
+        left->balance = 0;
+        tmp->balance = 0;
+      } else if (left->balance == -2) {
+        left->balance = 0;
+        tmp->balance = -1;
+      }
+    }
     Node* l = left->left;
     Node* m = left->right;
     Node* r = tmp->right;
     left->right = tmp;
     tmp->left = m;
-    tmp->balance = 0;
-    left->balance = 0;
     tmp = left;
   }
   void doBalance(bool ins = true) {
@@ -132,7 +192,25 @@ class AVLTree {
         tmp = parent;
       }
     } else {
-
+      tmp = st.Top();
+      st.Pop();
+      if (tmp->balance == 2)
+        smallLeftRotate(tmp);
+      else if (tmp->balance == -2)
+        smallRightRotate(tmp);
+      while (!st.isEmpty()) {
+        st.Pop();
+        parent = st.Top();
+        if (tmp == parent->left)
+          parent->balance--;
+        else if (tmp == parent->right)
+          parent->balance++;
+        if (parent->balance == 2)
+          smallLeftRotate(tmp);
+        else if (parent->balance == -2)
+          smallRightRotate(tmp);
+        tmp = parent;
+      }
     }
   }
 public:
@@ -202,5 +280,30 @@ public:
       return &tmp->val;
     else
       return nullptr;
+  }
+  void printTLR() {
+    if (root == nullptr)
+      return;
+    st.Clear();
+    TDynamicStack<long long> tst;
+    st.Push(root);
+    tst.Push(0);
+    while (!st.isEmpty()) {
+      Node* tmp = st.Top();
+      st.Pop();
+      long long h = tst.Top();
+      tst.Pop();
+      for (long long i = 0; i < h; i++)
+        cout << '\t';
+      cout << tmp->val << endl;
+      if (tmp->right != nullptr) {
+        st.Push(tmp->right);
+        tst.Push(h + 1);
+      }
+      if (tmp->left != nullptr) {
+        st.Push(tmp->left);
+        tst.Push(h + 1);
+      }
+    }
   }
 };
