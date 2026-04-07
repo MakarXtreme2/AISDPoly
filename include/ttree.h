@@ -118,6 +118,8 @@ class AVLTree {
     Node* r = right->right;
     right->left = tmp;
     tmp->right = m;
+    if (root == tmp)
+      root = right;
     tmp = right;
   }
   void smallRightRotate(Node*& tmp) {
@@ -159,58 +161,31 @@ class AVLTree {
     Node* r = tmp->right;
     left->right = tmp;
     tmp->left = m;
+    if (root == tmp)
+      root = left;
     tmp = left;
   }
-  void doBalance(bool ins = true) {
-    Node* tmp, parent;
-    if (ins) {
-      tmp = st.Top();
+  void doBalance() {
+    Node* tmp;
+    Node* parent;
+    tmp = st.Top();
+    st.Pop();
+    if (tmp->balance == 2)
+      smallLeftRotate(tmp);
+    else if (tmp->balance == -2)
+      smallRightRotate(tmp);
+    while (!st.isEmpty()) {
+      parent = st.Top();
       st.Pop();
-      if (tmp->balance == 2) {
-        smallLeftRotate(tmp);
-        return;
-      }
-      else if (tmp->balance == -2) {
-        smallRightRotate(tmp);
-        return;
-      }
-      while (!st.isEmpty()) {
-        st.Pop();
-        parent = st.Top();
-        if (tmp == parent->left)
-          parent->balance--;
-        else if (tmp == parent->right)
-          parent->balance++;
-        if (parent->balance == 2) {
-          smallLeftRotate(parent);
-          return;
-        }
-        else if (parent->balance == -2) {
-          smallRightRotate(parent);
-          return;
-        }
-        tmp = parent;
-      }
-    } else {
-      tmp = st.Top();
-      st.Pop();
-      if (tmp->balance == 2)
-        smallLeftRotate(tmp);
-      else if (tmp->balance == -2)
-        smallRightRotate(tmp);
-      while (!st.isEmpty()) {
-        st.Pop();
-        parent = st.Top();
-        if (tmp == parent->left)
-          parent->balance--;
-        else if (tmp == parent->right)
-          parent->balance++;
-        if (parent->balance == 2)
-          smallLeftRotate(parent);
-        else if (parent->balance == -2)
-          smallRightRotate(parent);
-        tmp = parent;
-      }
+      if (tmp == parent->left)
+        parent->balance--;
+      else if (tmp == parent->right)
+        parent->balance++;
+      if (parent->balance == 2)
+        smallLeftRotate(parent);
+      else if (parent->balance == -2)
+        smallRightRotate(parent);
+      tmp = parent;
     }
   }
 public:
@@ -242,7 +217,7 @@ public:
     else
       return;
     st.Push(tmp);
-    doBalance(tmp);
+    doBalance();
   }
   void Delete(T val) {
     st.Clear();
@@ -262,7 +237,7 @@ public:
       return;
     else
       partOfDelete(tmp);
-    doBalance(tmp, false);
+    doBalance();
   }
   T* Find(T val) {
     if (root == nullptr)
@@ -281,28 +256,41 @@ public:
     else
       return nullptr;
   }
-  void printTLR() {
+  void printTLR(bool typeI = false) {
     if (root == nullptr)
       return;
     st.Clear();
     TDynamicStack<long long> tst;
+    TDynamicStack<string> sst;
     st.Push(root);
     tst.Push(0);
+    sst.Push("root: ");
+    if (typeI)
+      cout << "Balance:\n";
+    else
+      cout << "Tree:\n";
     while (!st.isEmpty()) {
       Node* tmp = st.Top();
       st.Pop();
       long long h = tst.Top();
+      string str = sst.Top();
+      sst.Pop();
       tst.Pop();
       for (long long i = 0; i < h; i++)
         cout << '\t';
-      cout << tmp->val << endl;
+      if (typeI)
+        cout << str << tmp->balance << endl;
+      else
+        cout << str << tmp->val << endl;
       if (tmp->right != nullptr) {
         st.Push(tmp->right);
         tst.Push(h + 1);
+        sst.Push("right: ");
       }
       if (tmp->left != nullptr) {
         st.Push(tmp->left);
         tst.Push(h + 1);
+        sst.Push("left: ");
       }
     }
   }
