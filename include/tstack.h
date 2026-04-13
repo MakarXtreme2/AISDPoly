@@ -38,6 +38,28 @@ public:
     return arr[curr];
   }
 
+  TDynamicStack(const TDynamicStack<T>& other) {
+    sz = other.sz;
+    arr = new T[sz];
+    curr = other.curr;
+    for (size_t i = 0; i < sz; i++)
+      arr[i] = other.arr[i];
+  }
+
+  TDynamicStack<T>& operator=(const TDynamicStack<T>& other) {
+    if (this == &other)
+      throw out_of_range("SelfAssign");
+    if (sz != other.sz) {
+      delete[] arr;
+      sz = other.sz;
+      arr = new T[sz];
+    }
+    curr = other.curr;
+    for (size_t i = 0; i < sz; i++)
+      arr[i] = other.arr[i];
+    return *this;
+  }
+
   void Clear() {
     sz = 0;
     curr = -1;
@@ -61,6 +83,18 @@ public:
 
   bool isFull() {
     return curr == sz - 1;
+  }
+
+  friend ostream& operator<<(ostream& out, TDynamicStack<T>& st) {
+    TDynamicStack<T> tmp = st;
+    while (!tmp.isEmpty()) {
+      if (tmp.Size() == 1)
+        out << tmp.Top();
+      else
+        out << tmp.Top() << " ";
+      tmp.Pop();
+    }
+    return out;
   }
 
 };

@@ -154,6 +154,7 @@ public:
   T visitSiOp(SiOp<T>* op) {
     op->Part()->accept(this);
     delete op;
+    return 0;
   }
 };
 
