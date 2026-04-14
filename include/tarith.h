@@ -3,6 +3,7 @@
 #include "tstack.h"
 #include "tqueue.h"
 #include "tpoly.h"
+#include "ttree.h"
 #include <functional>
 #include <stdexcept>
 #include <format>
@@ -35,6 +36,9 @@ enum LexemeType {
   binary_operation,
   skobe,
   polynom,
+  variable,
+  assign,
+  semicolon,
   word
 };
 
@@ -48,11 +52,23 @@ template <typename T>
 class SiOp;
 
 template <typename T>
+class Variable;
+
+template <typename T>
+class AssignOp;
+
+template <typename T>
+class Semicolon;
+
+template <typename T>
 class Visitor {
 public:
   virtual T visitEPoly(EPoly<T>* poly) = 0;
   virtual T visitBiOp(BiOp<T>* op) = 0;
   virtual T visitSiOp(SiOp<T>* op) = 0;
+  virtual T visitVariable(Variable<T>* var) = 0;
+  virtual T visitAssignOp(AssignOp<T>* op) = 0;
+  virtual T visitSemicolon(Semicolon<T>* sec) = 0;
 };
 
 template <typename T>
@@ -104,6 +120,49 @@ public:
 };
 
 template <typename T>
+class Variable : public Expr<T> {
+  string name;
+  TableAVL<string, T>* table;
+public:
+  Variable(string _name, TableAVL<string, T>* _table) : name(_name), table(_table) {}
+  T accept(Visitor<T>* v) {
+    return v->visitVariable(this);
+  }
+  string Name() { return name; }
+  T* Value() { return table->Find(name); }
+  TableAVL<string, T>* Table() { return table; }
+};
+
+template <typename T>
+class AssignOp : public Expr<T> {
+  Variable<T>* var;
+  Expr<T>* value;
+public:
+  AssignOp(Variable<T>* _var, Expr<T>* _value) :
+    var(_var), value(_value) {}
+  T accept(Visitor<T>* v) {
+    return v->visitAssignOp(this);
+  }
+  Variable<T>* Var() { return var; }
+  Expr<T>* Value() { return value; }
+  char Op() { return '='; }
+};
+
+template <typename T>
+class Semicolon : Expr<T> {
+  Expr<T>* left;
+  Expr<T>* right;
+public:
+  Semicolon(Expr<T>* _left, Expr<T>* _right) : left(_left), right(_right) {}
+  T accept(Visitor<T>* v) {
+    return v->visitSemicolon(this);
+  }
+  Expr<T>* Left() { return left; }
+  Expr<T>* Right() { return right; }
+  char Op() { return ';'; }
+};
+
+template <typename T>
 class CalcVisitor : public Visitor<T> {
 public:
   T visitEPoly(EPoly<T>* poly) {
@@ -136,6 +195,18 @@ public:
       return -part;
     return part;
   }
+  T visitVariable(Variable<T>* var)  {
+    return *var->Value();
+  }
+  T visitAssignOp(AssignOp<T>* op) {
+    TableAVL<string, T>* table = op->Var()->Table();
+    table->Insert(op->Var()->Name(), op->Value()->accept(this));
+    return *op->Var()->Value();
+  }
+  T visitSemicolon(Semicolon<T>* sec)  {
+    sec->Left()->accept(this);
+    sec->Right()->accept(this);
+  }
 };
 
 template <typename T>
@@ -155,6 +226,21 @@ public:
     op->Part()->accept(this);
     delete op;
     return 0;
+  }
+  T visitVariable(Variable<T>* var)  {
+    delete var;
+    return 0;
+  }
+  T visitAssignOp(AssignOp<T>* op) {
+    op->Var()->accept(this);
+    op->Value()->accept(this);
+    delete op;
+    return 0;
+  }
+  T visitSemicolon(Semicolon<T>* sec)  {
+    sec->Left()->accept(this);
+    sec->Right()->accept(this);
+    delete sec;
   }
 };
 
@@ -269,6 +355,7 @@ protected:
   TDynamicQueue<Lexeme<T>> lexems_stream_int;
   TDynamicQueue<Lexeme<T>> lexems_postfix_int;
   TDynamicStack<Lexeme<T>> lexems_postfix_stack;
+  TableAVL<string, T> table;
   Expr<T>* root;
   friend class IHandler<T>;
 public:
@@ -281,6 +368,7 @@ public:
   TDynamicQueue<Lexeme<T>> LexemsStreamInt() { return lexems_stream_int; }
   TDynamicQueue<Lexeme<T>> LexemsPostfixInt() { return lexems_postfix_int; }
   TDynamicStack<Lexeme<T>> LexemsPostfixStack() { return lexems_postfix_stack; }
+  TableAVL<string, T> Table() { return table; }
   Expr<T>* Root() { return root; }
   T& GetResult() { return result; }
   virtual ~TMaker() {
@@ -301,6 +389,7 @@ protected:
   TDynamicQueue<Lexeme<T>> &lexems_stream_int() { return tarith->lexems_stream_int;}
   TDynamicQueue<Lexeme<T>> &lexems_postfix_int() { return tarith->lexems_postfix_int; }
   TDynamicStack<Lexeme<T>> &lexems_postfix_stack() { return tarith->lexems_postfix_stack; }
+  TableAVL<string, T> &table() { return tarith->table; }
   Expr<T>*& root() { return tarith->root; }
   T& result() { return tarith->result; }
 
@@ -1111,6 +1200,21 @@ Expr<T>* setSiOp(char op, Expr<T>* part) {
   return new SiOp<T>(op, part);
 }
 
+template <typename T>
+Expr<T>* setVar(string name, TableAVL<string, T>* table) {
+  return new Variable<T>(name, table);
+}
+
+template <typename T>
+Expr<T>* setAssignOp(Variable<T>* var, Expr<T>* value) {
+  return new AssignOp(var, value);
+}
+
+template <typename T>
+Expr<T>* setSemicolon(Expr<T>* left, Expr<T>* right) {
+  return new Semicolon(left, right);
+}
+
 template <typename T, template <typename> class List = TStdList>
 class ITreeCreator : public IHandler<T> {
   void freeTree() {
@@ -1150,6 +1254,30 @@ public:
       case number: case polynom:
         now = setVal(qe.Top().Value);
         tmp.Push(now);
+        break;
+      case variable:
+        now = setVar(qe.Top().Text, this->table());
+        tmp.Push(now);
+        break;
+      case assign:
+        left = tmp.Top();
+        tmp.Pop();
+        right = tmp.Top();
+        tmp.Pop();
+        now = setAssignOp(static_cast<Variable<T>*>(left), right);
+        tmp.Push(now);
+        break;
+      case semicolon:
+        left = tmp.Top();
+        tmp.Pop();
+        if (!tmp.isEmpty()) {
+          right = tmp.Top();
+          tmp.Pop();
+          now = setSemicolon(left, right);
+        }
+        else
+          now = setSemicolon(left, nullptr);
+        tmp.Push(tmp);
         break;
       default:
         break;
