@@ -11,7 +11,7 @@ class AVLTree {
     long long height = 0;
     Node* left = nullptr;
     Node* right = nullptr;
-    Node(T _val = 0) : val(_val) {}
+    Node(T _val = 0, long long _height = 0) : val(_val), height(_height) {}
   };
 
   Node* root = nullptr;
@@ -161,8 +161,48 @@ class AVLTree {
     }
   }
 
+  void Copy(const AVLTree<T>& other) {
+    TDynamicStack<Node*> mst;
+    TDynamicStack<Node*> sst;
+    TDynamicStack<string> strst;
+    Node* tmp;
+    Node* tmp2 = other.root;
+    string str;
+    root = new Node*(tmp2->val, tmp2->height);
+    mst.Push(root);
+    if (tmp2->left) {
+      sst.Push(tmp2->left);
+      strst.Push("left");
+    }
+    if (tmp2->right) {
+      sst.Push(tmp2->right);
+      strst.Push("right");
+    }
+    while (!sst.isEmpty()) {
+      tmp = mst.Top();
+
+      tmp2 = sst.Top();
+      str = strst.Top();
+      sst.Pop();
+      strst.Pop();
+      if (tmp2->left) {
+        sst.Push(tmp2->left);
+        strst.Push("left");
+      }
+      if (tmp2->right) {
+        sst.Push(tmp2->right);
+        strst.Push("right");
+      }
+    }
+    size = other.size;
+  }
+
 public:
   AVLTree() = default;
+
+  /*AVLTree(const AVLTree<T>& other) {
+    Copy(other);
+  }*/
 
   void Insert(T val) {
     st.Clear();
