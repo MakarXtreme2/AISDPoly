@@ -205,7 +205,9 @@ public:
   }
   T visitSemicolon(Semicolon<T>* sec)  {
     sec->Left()->accept(this);
-    sec->Right()->accept(this);
+    if (sec->Right())
+      sec->Right()->accept(this);
+    return 0;
   }
 };
 
@@ -239,8 +241,10 @@ public:
   }
   T visitSemicolon(Semicolon<T>* sec)  {
     sec->Left()->accept(this);
-    sec->Right()->accept(this);
+    if (sec->Right())
+      sec->Right()->accept(this);
     delete sec;
+    return 0;
   }
 };
 
@@ -1255,7 +1259,7 @@ public:
         now = setVal(qe.Top().Value);
         tmp.Push(now);
         break;
-      case variable:
+      /*case variable:
         now = setVar(qe.Top().Text, this->table());
         tmp.Push(now);
         break;
@@ -1278,7 +1282,7 @@ public:
         else
           now = setSemicolon(left, nullptr);
         tmp.Push(tmp);
-        break;
+        break;*/
       default:
         break;
       }

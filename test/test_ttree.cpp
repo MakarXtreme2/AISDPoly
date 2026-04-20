@@ -63,6 +63,38 @@ TEST(AVLTree, ttree_can_clear) {
   EXPECT_EQ(tr.Size(), 0);
 }
 
+TEST(AVLTree, ttree_can_be_copied) {
+  AVLTree<int> tr;
+  tr.Insert(6);
+  tr.Insert(3);
+  tr.Insert(1);
+  tr.Insert(8);
+  tr.Insert(4);
+  tr.Insert(5);
+  AVLTree<int> tr2(tr);
+  cout << "Tree 1" << endl;
+  tr.printTRL();
+  cout << "Tree 2" << endl;
+  tr2.printTRL();
+  EXPECT_EQ(tr2.Size(), 6);
+}
+
+TEST(AVLTree, ttree_can_assign) {
+  AVLTree<int> tr, tr2;
+  tr.Insert(6);
+  tr.Insert(3);
+  tr.Insert(1);
+  tr.Insert(8);
+  tr.Insert(4);
+  tr.Insert(5);
+  tr2 = tr;
+  cout << "Tree 1" << endl;
+  tr.printTRL();
+  cout << "Tree 2" << endl;
+  tr2.printTRL();
+  EXPECT_EQ(tr2.Size(), 6);
+}
+
 TEST(TableAVL, tableavl_work_correct) {
   TableAVL<char, int> table;
   table.Insert('a', 10);

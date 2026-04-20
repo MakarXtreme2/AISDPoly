@@ -1,6 +1,7 @@
 #pragma once
 #include "tstack.h"
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -162,36 +163,57 @@ class AVLTree {
   }
 
   void Copy(const AVLTree<T>& other) {
-    TDynamicStack<Node*> mst;
-    TDynamicStack<Node*> sst;
-    TDynamicStack<string> strst;
-    Node* tmp;
-    Node* tmp2 = other.root;
-    string str;
-    root = new Node*(tmp2->val, tmp2->height);
-    mst.Push(root);
-    if (tmp2->left) {
-      sst.Push(tmp2->left);
-      strst.Push("left");
+    TDynamicStack<Node*> other_stack;
+    TDynamicStack<Node*> tail_stack;
+    TDynamicStack<int> op_stack;
+    Node* other_tmp = other.root;
+    Node* tmp = nullptr;
+    int op;
+    if (other.size != 0) {
+      root = new Node(other_tmp->val, other_tmp->height);
+    } else {
+      root = nullptr;
+      size = 0;
+      return;
     }
-    if (tmp2->right) {
-      sst.Push(tmp2->right);
-      strst.Push("right");
+    tmp = root;
+    if (other_tmp->right) {
+      other_stack.Push(other_tmp->right);
+      op_stack.Push(1);
     }
-    while (!sst.isEmpty()) {
-      tmp = mst.Top();
-
-      tmp2 = sst.Top();
-      str = strst.Top();
-      sst.Pop();
-      strst.Pop();
-      if (tmp2->left) {
-        sst.Push(tmp2->left);
-        strst.Push("left");
+    if (other_tmp->left) {
+      other_stack.Push(other_tmp->left);
+      op_stack.Push(-1);
+    }
+    while (!other_stack.isEmpty()) {
+      other_tmp = other_stack.Top();
+      other_stack.Pop();
+      op = op_stack.Top();
+      op_stack.Pop();
+      while (op == 0 && !op_stack.isEmpty()) {
+        tmp = tail_stack.Top();
+        tail_stack.Pop();
+        op = op_stack.Top();
+        op_stack.Pop();
       }
-      if (tmp2->right) {
-        sst.Push(tmp2->right);
-        strst.Push("right");
+      if (op == -1) {
+        tmp->left = new Node(other_tmp->val, other_tmp->height);
+        tail_stack.Push(tmp);
+        tmp = tmp->left;
+        op_stack.Push(0);
+      } else if (op == 1) {
+        tmp->right = new Node(other_tmp->val, other_tmp->height);
+        tail_stack.Push(tmp);
+        tmp = tmp->right;
+        op_stack.Push(0);
+      }
+      if (other_tmp->right) {
+        other_stack.Push(other_tmp->right);
+        op_stack.Push(1);
+      }
+      if (other_tmp->left) {
+        other_stack.Push(other_tmp->left);
+        op_stack.Push(-1);
       }
     }
     size = other.size;
@@ -200,9 +222,17 @@ class AVLTree {
 public:
   AVLTree() = default;
 
-  /*AVLTree(const AVLTree<T>& other) {
+  AVLTree(const AVLTree<T>& other) {
     Copy(other);
-  }*/
+  }
+
+  AVLTree<T>& operator=(const AVLTree<T>& other) {
+    if (this == &other)
+      throw out_of_range("SelfAssign");
+    Clear();
+    Copy(other);
+    return *this;
+  }
 
   void Insert(T val) {
     st.Clear();
@@ -415,7 +445,9 @@ class TableAVL {
     Key key;
     Value val;
 
-    KeyType(Key _key = 0, Value _val = 0) : key(_key), val(_val) {}
+    KeyType() : key(Key()), val(Value()) {}
+    KeyType(Key _key) : key(_key), val(Value()) {}
+    KeyType(Key _key, Value _val) : key(_key), val(_val) {}
 
     KeyType(const KeyType& other) {
       key = other.key;
