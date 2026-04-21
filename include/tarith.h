@@ -149,7 +149,7 @@ public:
 };
 
 template <typename T>
-class Semicolon : Expr<T> {
+class Semicolon : public Expr<T> {
   Expr<T>* left;
   Expr<T>* right;
 public:
@@ -166,9 +166,11 @@ template <typename T>
 class CalcVisitor : public Visitor<T> {
 public:
   T visitEPoly(EPoly<T>* poly) {
+    cout << "visitEPoly\n";
     return poly->getVal();
   }
   T visitBiOp(BiOp<T>* op) {
+    cout << "visitBiOp\n";
     T left = op->Left()->accept(this);
     T right = op->Right()->accept(this);
     switch (op->Op()) {
@@ -190,20 +192,28 @@ public:
     }
   }
   T visitSiOp(SiOp<T>* op) {
+    cout << "visitSiOp\n";
     T part = op->Part()->accept(this);
     if (op->Op() == '-')
       return -part;
     return part;
   }
   T visitVariable(Variable<T>* var)  {
+    cout << "visitVariable\n";
     return *var->Value();
   }
   T visitAssignOp(AssignOp<T>* op) {
+    cout << "visitAssignOp\n";
     TableAVL<string, T>* table = op->Var()->Table();
+    cout << "visitAssignOp1\n";
+    cout << "op->Var()->Name() - " << op->Var()->Name();
+    cout << "op->Value()->accept(this) - " << op->Value()->accept(this);
     table->Insert(op->Var()->Name(), op->Value()->accept(this));
+    cout << "visitAssignOp2\n";
     return *op->Var()->Value();
   }
   T visitSemicolon(Semicolon<T>* sec)  {
+    cout << "visitSemicolon\n";
     sec->Left()->accept(this);
     if (sec->Right())
       sec->Right()->accept(this);
@@ -443,12 +453,14 @@ class ILexemeTranslator : public IHandler<T> {
   size_t Decode(char ch) {
     if (ch >= '0' && ch <= '9')
       return 0;
-    else if (ch >= '*' && ch <= '/')
+    else if ((ch >= '*' && ch <= '/') || (ch == '=') || (ch == ';'))
       return 1;
     else if (ch == '(' || ch == ')')
       return 2;
-    else
+    else if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z'))
       return 3;
+    else
+      return 4;
   }
   void NumberOne(char c) {
     lxt.Text = c;
@@ -470,9 +482,17 @@ class ILexemeTranslator : public IHandler<T> {
     lx.Value = c;
     lx.Type = binary_operation;
     if (c == '*' || c == '/')
-      lx.Priority = 1;
-    else
+      lx.Priority = 3;
+    else if (c == '+' || c == '-')
       lx.Priority = 2;
+    else if (c == '=') {
+      lx.Priority = 1;
+      lx.Type = assign;
+    }
+    else {
+      lx.Priority = 0;
+      lx.Type = semicolon;
+    }
     qe->Push(lx);
   }
   void SkobeOne(char c) {
@@ -483,21 +503,38 @@ class ILexemeTranslator : public IHandler<T> {
     lx.Text = c;
     lx.Value = c;
     lx.Type = skobe;
-    lx.Priority = 0;
+    lx.Priority = 4;
     qe->Push(lx);
+  }
+  void VariableOne(char c) {
+    lxt.Text = c;
+    lxt.Type = variable;
+    isPushed = false;
+  }
+  void VariableTwo(char c) {
+    lxt.Text += c;
+    lxt.Type = variable;
+    isPushed = false;
   }
 public:
 
-  ILexemeTranslator(TArith<T> &_tarith) : turm(2, 3) {
+  ILexemeTranslator(TArith<T> &_tarith) : turm(3, 4) {
     this->tarith = &_tarith;
     qe = new TDynamicQueue<Lexeme<T>>(this->inf_str().size());
-    TPair<SCFunc> tpairs[6] = {{1, [this](char c) { this->NumberOne(c); }},
+    TPair<SCFunc> tpairs[12] = {{1, [this](char c) { this->NumberOne(c); }},
                                {0, [this](char c) { this->OperationOne(c); }},
                                {0, [this](char c) { this->SkobeOne(c); }},
+                               {2, [this](char c) { this->VariableOne(c); }},
                                {1, [this](char c) { this->NumberTwo(c); }},
                                {0, [this](char c) { this->OperationOne(c); }},
-                               {0, [this](char c) { this->SkobeOne(c); }}};
-    turm.Load(tpairs, 6);
+                               {0, [this](char c) { this->SkobeOne(c); }},
+                               {2, [this](char c) {}},
+                               {2, [this](char c) { this->VariableTwo(c); }},
+                               {0, [this](char c) { this->OperationOne(c); }},
+                               {0, [this](char c) { this->SkobeOne(c); }},
+                               {2, [this](char c) { this->VariableTwo(c); }}
+    };
+    turm.Load(tpairs, 12);
   }
   ~ILexemeTranslator() {
     if (qe != nullptr)
@@ -508,7 +545,7 @@ public:
       qe = new TDynamicQueue<Lexeme<T>>(this->inf_str().size());
     for (size_t i = 0; i < this->inf_str().size(); i++) {
       size_t tmp = Decode(this->inf_str()[i]);
-      if (tmp != 3) {
+      if (tmp != 4) {
         turm[turm.Cursor()][tmp].Function(this->inf_str()[i]);
         turm.Cursor() = turm[turm.Cursor()][tmp].NextState;
       }
@@ -673,6 +710,8 @@ public:
         if (tmp != 4) {
           turm[turm.Cursor()][tmp].Function(tmplx);
           turm.Cursor() = turm[turm.Cursor()][tmp].NextState;
+        } else {
+          turm.Cursor() = 0;
         }
       } catch (Exception ex) {
         exqe->Push(ex);
@@ -711,20 +750,20 @@ public:
     while (!qe.isEmpty()) {
       tmplx = qe.Top();
       switch (tmplx.Type) {
-      case number: case polynom:
+      case number: case polynom: case variable:
         qe2.Push(tmplx);
         posttmp += tmplx.Text;
         if (!(curr == len - 1) || !st.isEmpty())
           posttmp += " ";
         break;
-      case binary_operation:case single_operation:
+      case binary_operation:case single_operation: case assign: case semicolon:
         if (st.isEmpty())
           st.Push(tmplx);
         else {
-          if (st.Top().Priority > tmplx.Priority || st.Top().Type == skobe)
+          if (st.Top().Priority < tmplx.Priority || st.Top().Type == skobe)
             st.Push(tmplx);
           else {
-            while (st.Top().Priority <= tmplx.Priority && st.Top().Type != skobe) {
+            while (st.Top().Priority >= tmplx.Priority && st.Top().Type != skobe) {
               qe2.Push(st.Top());
               posttmp += st.Top().Text;
               st.Pop();
@@ -875,9 +914,9 @@ class ILexemeTranslatorP : public IHandler<Polynom<T, List>> {
     lx.Text = c;
     lx.Type = binary_operation;
     if (c == '*' || c == '/')
-      lx.Priority = 1;
-    else
       lx.Priority = 2;
+    else
+      lx.Priority = 1;
     qe->Push(lx);
   }
   void SkobeOne(char c) {
@@ -887,7 +926,7 @@ class ILexemeTranslatorP : public IHandler<Polynom<T, List>> {
     isPushed = true;
     lx.Text = c;
     lx.Type = skobe;
-    lx.Priority = 0;
+    lx.Priority = 3;
     qe->Push(lx);
   }
 public:
@@ -1211,12 +1250,17 @@ Expr<T>* setVar(string name, TableAVL<string, T>* table) {
 
 template <typename T>
 Expr<T>* setAssignOp(Variable<T>* var, Expr<T>* value) {
-  return new AssignOp(var, value);
+  return new AssignOp<T>(var, value);
 }
 
 template <typename T>
 Expr<T>* setSemicolon(Expr<T>* left, Expr<T>* right) {
-  return new Semicolon(left, right);
+  return new Semicolon<T>(left, right);
+}
+
+template <typename T>
+Expr<T>* setSemicolon(Expr<T>* left) {
+  return new Semicolon<T>(left, nullptr);
 }
 
 template <typename T, template <typename> class List = TStdList>
@@ -1259,30 +1303,30 @@ public:
         now = setVal(qe.Top().Value);
         tmp.Push(now);
         break;
-      /*case variable:
-        now = setVar(qe.Top().Text, this->table());
+      case variable:
+        now = setVar(qe.Top().Text, &this->table());
         tmp.Push(now);
         break;
       case assign:
-        left = tmp.Top();
-        tmp.Pop();
         right = tmp.Top();
+        tmp.Pop();
+        left = tmp.Top();
         tmp.Pop();
         now = setAssignOp(static_cast<Variable<T>*>(left), right);
         tmp.Push(now);
         break;
       case semicolon:
-        left = tmp.Top();
+        right = tmp.Top();
         tmp.Pop();
         if (!tmp.isEmpty()) {
-          right = tmp.Top();
+          left = tmp.Top();
           tmp.Pop();
           now = setSemicolon(left, right);
         }
         else
-          now = setSemicolon(left, nullptr);
-        tmp.Push(tmp);
-        break;*/
+          now = setSemicolon(right);
+        tmp.Push(now);
+        break;
       default:
         break;
       }
@@ -1299,6 +1343,7 @@ public:
     this->tarith = &_tarith;
   }
   void Do() {
+    cout << "Here" << endl;
     CalcVisitor<T> visitor;
     T res = this->root()->accept(&visitor);
     this->result() = res;

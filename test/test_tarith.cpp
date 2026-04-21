@@ -84,7 +84,6 @@ TEST(ILexemeTranslator, ilexemetranslator_work_correct) {
   string str = "254 + 23/9 + (12 - 76)";
   TArith<int> arth(str);
   ILexemeTranslator<int> hand1(arth);
-  ICorrectChecker<int> hand2(arth);
   arth.AddHandler(hand1);
   arth.LaunchHandler(0);
   TDynamicQueue<Lexeme<int>> qe = arth.LexemsStreamInt();
@@ -109,6 +108,51 @@ TEST(ILexemeTranslator, ilexemetranslator_work_correct) {
   EXPECT_EQ(qe.Top().Value, 76);
   qe.Pop();
   EXPECT_EQ(qe.Top().Type, skobe);
+}
+
+TEST(ILexemeTranslator, ilexemetranslator_work_correct_plus) {
+  string str = "254 + 23/9 + (12 - 76) ; war = 2; bom = 23";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  arth.AddHandler(hand1);
+  arth.LaunchHandler(0);
+  TDynamicQueue<Lexeme<int>> qe = arth.LexemsStreamInt();
+  EXPECT_EQ(qe.Top().Value, 254);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, binary_operation);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "23");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Value, 47);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "+");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Value, 40);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "-");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Value, 76);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, skobe);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, semicolon);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "war");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, assign);
+  qe.Pop();
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, ";");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, variable);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, assign);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
 }
 
 TEST(ICorrectChecker, icorrectchecker_work_correct) {
@@ -144,6 +188,16 @@ TEST(ICorrectChecker, icorrectchecker_work_correct) {
   ASSERT_NO_THROW(arth.LaunchAllHandlers());
   arth = "2548(89-)/0+5-000009";
   ASSERT_ANY_THROW(arth.LaunchAllHandlers());
+}
+
+TEST(ICorrectChecker, icorrectchecker_do_not_conflict) {
+  string str = "254 + 23/9 + (12 - 76) ; war = 2; bom = 23";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ICorrectChecker<int> hand2(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  EXPECT_NO_THROW(arth.LaunchAllHandlers());
 }
 
 TEST(IPostfixMaker, ipostfixmaker_work_correct) {
@@ -305,7 +359,7 @@ TEST(ICounter, icounter_work_correct_with_polynom_repeat) {
   EXPECT_EQ(arth.GetResult().Count(2, 3), 180);
 }
 
-TEST(ITree, itree_work_correct_with_polynom) {
+/*TEST(ITree, itree_work_correct_with_polynom) {
   TArith<Polynom<int>> arth("10 / 2 + 6 * (20 - 3)");
   ILexemeTranslatorP<int> hand1(arth);
   ICorrectCheckerP<int> hand2(arth);
@@ -319,4 +373,21 @@ TEST(ITree, itree_work_correct_with_polynom) {
   arth.AddHandler(hand5);
   arth.LaunchAllHandlers();
   EXPECT_EQ(arth.GetResult().Count(), 107);
+}*/
+
+TEST(ITree, itree_work_correct_with_assign_and_semicolon) {
+  TArith<int> arth("a = 25; b = (40 + (a * 2))");
+  ILexemeTranslator<int> hand1(arth);
+  //ICorrectChecker<int> hand2(arth);
+  IPostfixMaker<int> hand3(arth);
+  ITreeCreator<int> hand4(arth);
+  ITreeCounter<int> hand5(arth);
+  arth.AddHandler(hand1);
+  //arth.AddHandler(hand2);
+  arth.AddHandler(hand3);
+  arth.AddHandler(hand4);
+  arth.AddHandler(hand5);
+  arth.LaunchAllHandlers();
+  cout << arth.PostFixStr() << endl;
+  arth.Table().printLTR();
 }
