@@ -39,6 +39,8 @@ enum LexemeType {
   variable,
   assign,
   semicolon,
+  special_word,
+  condition,
   word
 };
 
@@ -346,6 +348,9 @@ template <typename T>
 using STFunc = function<void(Lexeme<T>)>;
 
 template <typename T>
+class TSolveTree;
+
+template <typename T>
 class IHandler;
 
 // Parent Class for arith. Only for making dependencies between arith and handlers
@@ -361,7 +366,9 @@ protected:
   TDynamicStack<Lexeme<T>> lexems_postfix_stack;
   TableAVL<string, T> table;
   Expr<T>* root;
+  TSolveTree<T> solve_tree;
   friend class IHandler<T>;
+  friend class TSolveTree<T>;
 public:
   TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size), root(nullptr) {
     inf_str = _inf_str;
@@ -374,6 +381,7 @@ public:
   TDynamicStack<Lexeme<T>> LexemsPostfixStack() { return lexems_postfix_stack; }
   TableAVL<string, T> Table() { return table; }
   Expr<T>* Root() { return root; }
+  TSolveTree<T> SolveTree() { return solve_tree; }
   T& GetResult() { return result; }
   virtual ~TMaker() {
     RemoveVisitor<T> rvis;
@@ -472,9 +480,13 @@ class ILexemeTranslator : public IHandler<T> {
     lx.Value = c;
     lx.Type = binary_operation;
     if (c == '*' || c == '/')
-      lx.Priority = 3;
+      lx.Priority = 4;
     else if (c == '+' || c == '-')
+      lx.Priority = 3;
+    else if (c == '<' || c == '>') {
       lx.Priority = 2;
+      lx.Type = condition;
+    }
     else if (c == '=') {
       lx.Priority = 1;
       lx.Type = assign;

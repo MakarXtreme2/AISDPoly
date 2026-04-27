@@ -1,4 +1,4 @@
-set(projlibs tstack tqueue tarith tcomp tlist tpoly ttree)
+set(projlibs tstack tqueue tarith tcomp tlist tpoly ttree titertree)
 foreach(projlib IN LISTS projlibs)
   add_library(${projlib} STATIC ${projlib}.cpp "${ARITHS_INCLUDE}/${projlib}.h")
 endforeach()

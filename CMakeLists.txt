@@ -19,7 +19,7 @@ include_directories("${ARITHS_INCLUDE}")
 
 set(ANTLR_INCLUDE_DIR "/usr/local/include/antlr4-runtime")
 include_directories("parser")
-set(ANTLR_LIBRARY "/usr/local/lib64/libantlr4-runtime.so")
+set(ANTLR_LIBRARY "/usr/local/lib/libantlr4-runtime.so")
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_TESTING OFF)
 set(HAVE_STD_REGEX 0)
