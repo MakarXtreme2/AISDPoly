@@ -166,11 +166,9 @@ template <typename T>
 class CalcVisitor : public Visitor<T> {
 public:
   T visitEPoly(EPoly<T>* poly) {
-    cout << "visitEPoly\n";
     return poly->getVal();
   }
   T visitBiOp(BiOp<T>* op) {
-    cout << "visitBiOp\n";
     T left = op->Left()->accept(this);
     T right = op->Right()->accept(this);
     switch (op->Op()) {
@@ -192,28 +190,20 @@ public:
     }
   }
   T visitSiOp(SiOp<T>* op) {
-    cout << "visitSiOp\n";
     T part = op->Part()->accept(this);
     if (op->Op() == '-')
       return -part;
     return part;
   }
   T visitVariable(Variable<T>* var)  {
-    cout << "visitVariable\n";
     return *var->Value();
   }
   T visitAssignOp(AssignOp<T>* op) {
-    cout << "visitAssignOp\n";
     TableAVL<string, T>* table = op->Var()->Table();
-    cout << "visitAssignOp1\n";
-    cout << "op->Var()->Name() - " << op->Var()->Name();
-    cout << "op->Value()->accept(this) - " << op->Value()->accept(this);
     table->Insert(op->Var()->Name(), op->Value()->accept(this));
-    cout << "visitAssignOp2\n";
     return *op->Var()->Value();
   }
   T visitSemicolon(Semicolon<T>* sec)  {
-    cout << "visitSemicolon\n";
     sec->Left()->accept(this);
     if (sec->Right())
       sec->Right()->accept(this);
