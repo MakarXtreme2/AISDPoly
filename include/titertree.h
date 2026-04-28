@@ -1,19 +1,26 @@
 #pragma once
 
+#include <stdexcept>
+#include <iostream>
+
 #include "tarith.h"
 #include "tstack.h"
 #include "tqueue.h"
 #include "ttree.h"
-#include <stdexcept>
+
+using namespace std;
 
 template <typename T>
 class TSolveTree {
 
+  TableAVL<string, T> table;
+
   struct Node {
+
     Lexeme<T> lexeme = Lexeme<T>();
     size_t num_of_nodes = 0;
     Node** nodes = nullptr;
-    T result = 0;
+    T result = T();
 
     Node(Lexeme<T> _lexeme = Lexeme<T>(), size_t _num_of_nodes = 0) :
       lexeme(_lexeme),
@@ -50,20 +57,83 @@ class TSolveTree {
     void Do() {
       switch (lexeme.Type) {
       case number:
+        result = lexeme.Value;
         break;
       case single_operation:
+        SingleOperation();
         break;
       case binary_operation:
+        BinaryOperation();
         break;
       case variable:
         break;
       case assign:
+        Assign();
         break;
       case semicolon:
         break;
       case special_word:
         break;
       case condition:
+        Condition();
+        break;
+      default:
+        break;
+      }
+    }
+
+  private:
+
+    void SingleOperation() {
+      switch (lexeme.Text) {
+      case "-":
+        result = -nodes[0]->result;
+        break;
+      default:
+        break;
+      }
+    }
+
+    void BinaryOperation() {
+      switch (lexeme.Text) {
+      case "+":
+        result = nodes[0]->result + nodes[1]->result;
+        break;
+      case "-":
+        result = nodes[0]->result - nodes[1]->result;
+        break;
+      case "*":
+        result = nodes[0]->result * nodes[1]->result;
+        break;
+      case "/":
+        result = nodes[0]->result / nodes[1]->result;
+        break;
+      default:
+        break;
+      }
+    }
+
+    void Assign() {
+      result = nodes[1]->result;
+      //table->Insert(nodes[0]->lexeme.Text, result);
+    }
+
+    void Condition() {
+      switch (lexeme.Text) {
+      case "<":
+        result = nodes[0]->result < nodes[1]->result ? 1 : 0;
+        break;
+      case ">":
+        result = nodes[0]->result > nodes[1]->result ? 1 : 0;
+        break;
+      case "==":
+        result = nodes[0]->result == nodes[1]->result ? 1 : 0;
+        break;
+      case "<=":
+        result = nodes[0]->result <= nodes[1]->result ? 1 : 0;
+        break;
+      case ">=":
+        result = nodes[0]->result >= nodes[1]->result ? 1 : 0;
         break;
       default:
         break;
@@ -76,6 +146,9 @@ class TSolveTree {
 
 public:
 
+  friend TMaker<T>;
+
   TSolveTree() : root(nullptr) {}
+
 
 };
