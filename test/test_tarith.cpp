@@ -391,3 +391,105 @@ TEST(ITree, itree_work_correct_with_assign_and_semicolon) {
   cout << arth.PostFixStr() << endl;
   arth.Table().printLTR();
 }
+
+TEST(Translator, ilexemetranslator_can_read) {
+  string str = "x = 0;               \
+                y = 0;               \
+                while (x < 2)        \
+                begin                \
+                  x = x + 1;         \
+                  y = y + 5;         \
+                end                  \
+                write y;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  arth.AddHandler(hand1);
+  arth.LaunchHandler(0);
+  TDynamicQueue<Lexeme<int>> qe = arth.LexemsStreamInt();
+  arth.printLexems();
+  arth.printFullLexems();
+  EXPECT_EQ(qe.Top().Text, "x");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, assign);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, ";");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, variable);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "=");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "0");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, semicolon);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "while");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, skobe);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, variable);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, condition);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, ")");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, special_word);
+  EXPECT_EQ(qe.Top().Text, "begin");
+}
+
+TEST(Translator, isetcorrect_work_good) {
+  string str = "x = 0;               \
+                y = 0;               \
+                while (x <= 2)       \
+                begin                \
+                  x = -x + 1;        \
+                  y = y + ( (- 5));  \
+                end                  \
+                write y;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.LaunchAllHandlers();
+  TDynamicQueue<Lexeme<int>> qe = arth.LexemsStreamInt();
+  arth.printLexems();
+  arth.printFullLexems();
+  EXPECT_EQ(qe.Top().Text, "x");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, assign);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, ";");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, variable);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "=");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "0");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, semicolon);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "while");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, skobe);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, variable);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, "<=");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, number);
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Text, ")");
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, special_word);
+  EXPECT_EQ(qe.Top().Text, "begin");
+  qe.Pop();
+  qe.Pop();
+  qe.Pop();
+  EXPECT_EQ(qe.Top().Type, single_operation);
+}

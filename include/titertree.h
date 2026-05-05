@@ -3,12 +3,18 @@
 #include <stdexcept>
 #include <iostream>
 
-#include "tarith.h"
 #include "tstack.h"
 #include "tqueue.h"
 #include "ttree.h"
+#include "lexeme.h"
 
 using namespace std;
+
+template <typename T>
+class TMaker;
+
+template <typename T>
+class IHandler;
 
 template <typename T>
 class TSolveTree {
@@ -147,6 +153,7 @@ class TSolveTree {
 public:
 
   friend TMaker<T>;
+  friend IHandler<T>;
 
   TSolveTree() : root(nullptr) {}
 

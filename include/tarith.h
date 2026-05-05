@@ -4,6 +4,8 @@
 #include "tqueue.h"
 #include "tpoly.h"
 #include "ttree.h"
+#include "titertree.h"
+#include "lexeme.h"
 #include <functional>
 #include <stdexcept>
 #include <format>
@@ -30,19 +32,6 @@ public:
 
 // Type of lexem
 
-enum LexemeType {
-  number,
-  single_operation,
-  binary_operation,
-  skobe,
-  polynom,
-  variable,
-  assign,
-  semicolon,
-  special_word,
-  condition,
-  word
-};
 
 template <typename T>
 class EPoly;
@@ -336,13 +325,6 @@ public:
 
 // Structure for lexem description
 
-template <typename T>
-struct Lexeme {
-  string Text;
-  T Value;
-  LexemeType Type;
-  int Priority;
-};
 
 template <typename T>
 using STFunc = function<void(Lexeme<T>)>;
@@ -383,6 +365,24 @@ public:
   Expr<T>* Root() { return root; }
   TSolveTree<T> SolveTree() { return solve_tree; }
   T& GetResult() { return result; }
+  void printLexems() {
+    TDynamicQueue<Lexeme<T>> tmp = lexems_stream_int;
+    while (!tmp.isEmpty()) {
+      cout << tmp.Top().Text << " ";
+      tmp.Pop();
+    }
+    cout << endl;
+  }
+  void printFullLexems() {
+    TDynamicQueue<Lexeme<T>> tmp = lexems_stream_int;
+    while (!tmp.isEmpty()) {
+      cout << "{" << tmp.Top().Text << ", "
+      << tmp.Top().Value << ", " << tmp.Top().Type
+      << ", " << tmp.Top().Priority << "} ";
+      tmp.Pop();
+    }
+    cout << endl;
+  }
   virtual ~TMaker() {
     RemoveVisitor<T> rvis;
     if (root != nullptr)
@@ -448,10 +448,13 @@ class ILexemeTranslator : public IHandler<T> {
   TDynamicQueue<Lexeme<T>> *qe;
   bool isPushed = true;
   Lexeme<T> lxt;
+
   size_t Decode(char ch) {
     if (ch >= '0' && ch <= '9')
       return 0;
-    else if ((ch >= '*' && ch <= '/') || (ch == '=') || (ch == ';'))
+    else if ((ch >= '*' && ch <= '/') ||
+             (ch == '=') || (ch == ';') ||
+             (ch == '<') || (ch == '>'))
       return 1;
     else if (ch == '(' || ch == ')')
       return 2;
@@ -460,17 +463,30 @@ class ILexemeTranslator : public IHandler<T> {
     else
       return 4;
   }
+
+  void CheckSpec() {
+    if (lxt.Text == "while" || lxt.Text == "begin" ||
+        lxt.Text == "end" || lxt.Text == "write" ||
+        lxt.Text == "if")
+      lxt.Type = special_word;
+    else
+      lxt.Type = variable;
+
+  }
+
   void NumberOne(char c) {
     lxt.Text = c;
     lxt.Type = number;
     lxt.Value = c - 48;
     isPushed = false;
   }
+
   void NumberTwo(char c) {
     lxt.Value = lxt.Value * 10 + c - 48;
     lxt.Text += c;
     isPushed = false;
   }
+
   void OperationOne(char c) {
     Lexeme<T> lx;
     if (!isPushed)
@@ -497,6 +513,7 @@ class ILexemeTranslator : public IHandler<T> {
     }
     qe->Push(lx);
   }
+
   void SkobeOne(char c) {
     Lexeme<T> lx;
     if (!isPushed)
@@ -508,16 +525,19 @@ class ILexemeTranslator : public IHandler<T> {
     lx.Priority = 4;
     qe->Push(lx);
   }
+
   void VariableOne(char c) {
     lxt.Text = c;
     lxt.Type = variable;
     isPushed = false;
   }
+
   void VariableTwo(char c) {
     lxt.Text += c;
-    lxt.Type = variable;
+    CheckSpec();
     isPushed = false;
   }
+
 public:
 
   ILexemeTranslator(TArith<T> &_tarith) : turm(3, 4) {
@@ -546,6 +566,15 @@ public:
     if (qe == nullptr)
       qe = new TDynamicQueue<Lexeme<T>>(this->inf_str().size());
     for (size_t i = 0; i < this->inf_str().size(); i++) {
+      if (this->inf_str()[i] == ' ' ||
+          this->inf_str()[i] == '\n' ||
+          this->inf_str()[i] == '\t') {
+        if (!isPushed) {
+          qe->Push(lxt);
+          isPushed = true;
+          turm.Cursor() = 0;
+        }
+      }
       size_t tmp = Decode(this->inf_str()[i]);
       if (tmp != 4) {
         turm[turm.Cursor()][tmp].Function(this->inf_str()[i]);
@@ -575,6 +604,7 @@ class ICorrectChecker : public IHandler<T> {
   TuringMachine<STFunc<T>> turm;
   TDynamicQueue<Lexeme<T>> *qe;
   Lexeme<T> tmplx;
+
   size_t Decode(Lexeme<T> lx) {
     if (lx.Type == number)
       return 0;
@@ -587,6 +617,7 @@ class ICorrectChecker : public IHandler<T> {
     else
       return 4;
   }
+
   void NumberOne(Lexeme<T> lx) {
     if (lx.Value != 0 && lx.Text[0] == '0')
       throw Exception(format("Number {} can't start with zero on pos: {}", lx.Text, pos), pos);
@@ -594,6 +625,7 @@ class ICorrectChecker : public IHandler<T> {
       throw Exception(format("Duplicating zeroes on pos: {}", pos), pos);
     qe->Push(lx);
   }
+
   void NumberTwo(Lexeme<T> lx) {
     if (lx.Value != 0 && lx.Text[0] == '0')
       throw Exception(format("Number {} can't start with zero on pos: {}", lx.Text, pos), pos);
@@ -604,27 +636,32 @@ class ICorrectChecker : public IHandler<T> {
     divide_by = false;
     qe->Push(lx);
   }
+
   void OperationOne(Lexeme<T> lx) {
     if (lx.Text != "+" && lx.Text != "-")
       throw Exception(format("Wrong operation {} on pos: {}", lx.Text, pos),pos);
     lx.Type = single_operation;
     qe->Push(lx);
   }
+
   void OperationTwo(Lexeme<T> lx) {
     qe->Push(lx);
     if (lx.Text == "/")
       divide_by = true;
   }
+
   void SkobeOpenOne(Lexeme<T> lx) {
     qe->Push(lx);
     st->Push(pos);
   }
+
   void SkobeCloseOne(Lexeme<T> lx) {
     qe->Push(lx);
     if (st->isEmpty())
       throw Exception(format("Wrong skobe {} on pos: {}", lx.Text, pos), pos);
     st->Pop();
   }
+
   void printExceptions() {
     size_t len = exqe->Size() + st->Size();
     TDynamicQueue<size_t> qst(st->Size());
@@ -651,8 +688,11 @@ class ICorrectChecker : public IHandler<T> {
       throw out_of_range("This expression has problems");
 
   }
+
   bool divide_by = false;
+
 public:
+
   ICorrectChecker(TArith<T> &_tarith) : turm(5, 4) {
     this->tarith = &_tarith;
     qe = new TDynamicQueue<Lexeme<T>>(this->inf_str().size());
@@ -689,6 +729,7 @@ public:
     };
     turm.Load(tpairs, 20);
   }
+
   ~ICorrectChecker() {
     if (qe != nullptr) {
       delete qe;
@@ -696,6 +737,7 @@ public:
       delete exqe;
     }
   }
+
   void Do() {
     if (qe == nullptr) {
       qe = new TDynamicQueue<Lexeme<T>>(this->lexems_stream_int().Size());
@@ -730,6 +772,154 @@ public:
     }
     this->lexems_stream_int() = *qe;
     printExceptions();
+  }
+};
+
+// Class that set correctness
+
+template <typename T>
+class ISetCorrect : public IHandler<T> {
+  TuringMachine<STFunc<T>> turm;
+  TDynamicQueue<Lexeme<T>>* qe;
+  Lexeme<T> tmplx;
+  bool isPushed = true;
+
+  size_t Decode(Lexeme<T> lx) {
+    if (lx.Type == binary_operation)
+      return 0;
+    else if (lx.Type == assign)
+      return 1;
+    else if (lx.Type == condition)
+      return 2;
+    else if (lx.Text == "(")
+      return 3;
+    else
+      return 4;
+  }
+
+  void LexemeOne(Lexeme<T> lx) {
+    tmplx = lx;
+    isPushed = false;
+  }
+
+  void LexemeTwo(Lexeme<T> lx) {
+    qe->Push(tmplx);
+    qe->Push(lx);
+    tmplx = lx;
+    isPushed = true;
+  }
+
+  void LexemeThree(Lexeme<T> lx) {
+    qe->Push(tmplx);
+    tmplx = lx;
+  }
+
+  void OperationOne(Lexeme<T> lx) {
+    tmplx.Text += lx.Text;
+    tmplx.Type = single_operation;
+    qe->Push(tmplx);
+    isPushed = true;
+  }
+
+  void OperationTwo(Lexeme<T> lx) {
+    tmplx.Text += lx.Text;
+    tmplx.Type = assign;
+    tmplx.Priority = 1;
+    qe->Push(tmplx);
+    tmplx = lx;
+    isPushed = true;
+  }
+
+  void AssignOne(Lexeme<T> lx) {
+    if (!isPushed)
+      qe->Push(tmplx);
+    tmplx = lx;
+    tmplx.Type = single_operation;
+    qe->Push(tmplx);
+    isPushed = true;
+  }
+
+  void AssignTwo(Lexeme<T> lx) {
+    tmplx.Text += lx.Text;
+    tmplx.Type = condition;
+    tmplx.Priority = 2;
+    qe->Push(tmplx);
+    isPushed = true;
+  }
+
+
+public:
+
+  ISetCorrect(TArith<T> &_tarith) : turm(5, 4) {
+    this->tarith = &_tarith;
+    qe = new TDynamicQueue<Lexeme<T>>(this->lexems_stream_int().Size());
+    TPair<STFunc<T>> tpairs[20] = {
+      {1, [this](Lexeme<T> lx) { this->LexemeOne(lx); }}, // binary_operation - null
+      {2, [this](Lexeme<T> lx) { this->LexemeOne(lx); }}, // assign
+      {3, [this](Lexeme<T> lx) { this->LexemeOne(lx); }}, // condition
+      {4, [this](Lexeme<T> lx) { this->LexemeOne(lx); }}, // (
+      {0, [this](Lexeme<T> lx) { this->OperationOne(lx); }}, // binary_operation - binary_operation
+      {2, [this](Lexeme<T> lx) { this->OperationTwo(lx); }}, // assign
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // condition
+      {4, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // (
+      {0, [this](Lexeme<T> lx) { this->AssignOne(lx); }}, // binary_operation - assign
+      {0, [this](Lexeme<T> lx) { this->AssignTwo(lx); }}, // assign
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // condition
+      {4, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // (
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // binary_operation - condition
+      {0, [this](Lexeme<T> lx) { this->AssignTwo(lx); }}, // assign
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // condition
+      {4, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // (
+      {0, [this](Lexeme<T> lx) { this->AssignOne(lx); }}, // binary_operation - (
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // assign
+      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // condition
+      {4, [this](Lexeme<T> lx) { this->LexemeThree(lx); }}  // (
+    };
+    turm.Load(tpairs, 20);
+  }
+
+  ~ISetCorrect() {
+    if (qe != nullptr) {
+      delete qe;
+    }
+  }
+
+  void Do() {
+    if (qe == nullptr)
+      qe = new TDynamicQueue<Lexeme<T>>(this->lexems_stream_int().Size());
+    TDynamicQueue<Lexeme<T>> qe2 = this->tarith->LexemsStreamInt();
+    Lexeme<T> lxt;
+    while (!qe2.isEmpty()) {
+      lxt = qe2.Top();
+      size_t tmp = Decode(lxt);
+      if (tmp != 4) {
+        turm[turm.Cursor()][tmp].Function(lxt);
+        turm.Cursor() = turm[turm.Cursor()][tmp].NextState;
+      } else {
+        turm.Cursor() = 0;
+        if (!isPushed)
+          qe->Push(tmplx);
+        isPushed = true;
+        qe->Push(lxt);
+      }
+      qe2.Pop();
+    }
+    if (!isPushed)
+      qe->Push(tmplx);
+    isPushed = true;
+    this->lexems_stream_int() = *qe;
+    turm.Cursor() = 0;
+  }
+};
+
+template <typename T>
+class ITreeMaker : public IHandler<T> {
+public:
+  ITreeMaker(TArith<T> &_tarith) {
+    this->tarith = &_tarith;
+  }
+  void Do() {
+
   }
 };
 
