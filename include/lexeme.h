@@ -25,3 +25,27 @@ struct Lexeme {
   LexemeType Type;
   int Priority;
 };
+
+enum NodeType {
+  numberT,
+  varT,
+  numvarT,
+  endT,
+  beginT,
+  whileT,
+  singleminusT,
+  plusminusT,
+  muldivT,
+  condT,
+  skobeopenT,
+  skobecloseT,
+  assignT,
+  scT,
+  exprT,
+  conditionT,
+  assignopT,
+  lineT,
+  codeblockT,
+  cycleT,
+  progT
+};

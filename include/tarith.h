@@ -1,4 +1,11 @@
 #pragma once
+
+#include <functional>
+#include <stdexcept>
+#include <format>
+#include <iostream>
+#include <vector>
+
 #include "tlist.h"
 #include "tstack.h"
 #include "tqueue.h"
@@ -6,10 +13,7 @@
 #include "ttree.h"
 #include "titertree.h"
 #include "lexeme.h"
-#include <functional>
-#include <stdexcept>
-#include <format>
-#include <iostream>
+#include "trule.h"
 
 #define MAXTURING 1000
 
@@ -351,6 +355,45 @@ protected:
   TSolveTree<T> solve_tree;
   friend class IHandler<T>;
   friend class TSolveTree<T>;
+
+  void printType(Lexeme<T> lx) {
+    switch (lx.Type) {
+    case number:
+      cout << "number";
+      break;
+    case single_operation:
+      cout << "single_operation";
+      break;
+    case binary_operation:
+      cout << "binary_operation";
+      break;
+    case skobe:
+      cout << "skobe";
+      break;
+    case polynom:
+      cout << "polynom";
+      break;
+    case variable:
+      cout << "variable";
+      break;
+    case assign:
+      cout << "assign";
+      break;
+    case semicolon:
+      cout << "semicolon";
+      break;
+    case special_word:
+      cout << "special_word";
+      break;
+    case condition:
+      cout << "condition";
+      break;
+    case word:
+      cout << "word";
+      break;
+    }
+  }
+  
 public:
   TMaker(string _inf_str, size_t size = 0) : lexems_stream_int(size), root(nullptr) {
     inf_str = _inf_str;
@@ -377,8 +420,9 @@ public:
     TDynamicQueue<Lexeme<T>> tmp = lexems_stream_int;
     while (!tmp.isEmpty()) {
       cout << "{" << tmp.Top().Text << ", "
-      << tmp.Top().Value << ", " << tmp.Top().Type
-      << ", " << tmp.Top().Priority << "} ";
+      << tmp.Top().Value << ", ";
+      printType(tmp.Top());
+      cout << ", " << tmp.Top().Priority << "} ";
       tmp.Pop();
     }
     cout << endl;
@@ -401,6 +445,7 @@ protected:
   TDynamicQueue<Lexeme<T>> &lexems_stream_int() { return tarith->lexems_stream_int;}
   TDynamicQueue<Lexeme<T>> &lexems_postfix_int() { return tarith->lexems_postfix_int; }
   TDynamicStack<Lexeme<T>> &lexems_postfix_stack() { return tarith->lexems_postfix_stack; }
+  TSolveTree<T> &solve_tree() { return tarith->solve_tree; }
   TableAVL<string, T> &table() { return tarith->table; }
   Expr<T>*& root() { return tarith->root; }
   T& result() { return tarith->result; }
@@ -847,6 +892,18 @@ class ISetCorrect : public IHandler<T> {
     isPushed = true;
   }
 
+  void ConditionOne(Lexeme<T> lx) {
+    if (tmplx.Text == "<" && lx.Text == ">") {
+      tmplx.Text += lx.Text;
+      tmplx.Type = condition;
+      qe->Push(tmplx);
+      isPushed = true;
+    }
+    else {
+      LexemeTwo(lx);
+    }
+  }
+
 
 public:
 
@@ -868,7 +925,7 @@ public:
       {4, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // (
       {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // binary_operation - condition
       {0, [this](Lexeme<T> lx) { this->AssignTwo(lx); }}, // assign
-      {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // condition
+      {0, [this](Lexeme<T> lx) { this->ConditionOne(lx); }}, // condition
       {4, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // (
       {0, [this](Lexeme<T> lx) { this->AssignOne(lx); }}, // binary_operation - (
       {0, [this](Lexeme<T> lx) { this->LexemeTwo(lx); }}, // assign
@@ -912,16 +969,6 @@ public:
   }
 };
 
-template <typename T>
-class ITreeMaker : public IHandler<T> {
-public:
-  ITreeMaker(TArith<T> &_tarith) {
-    this->tarith = &_tarith;
-  }
-  void Do() {
-
-  }
-};
 
 // Class that makes postfix view of arithmetic expressions
 
@@ -1539,5 +1586,185 @@ public:
     CalcVisitor<T> visitor;
     T res = this->root()->accept(&visitor);
     this->result() = res;
+  }
+};
+
+template <typename T>
+class ITreeMaker : public IHandler<T> {
+
+  vector<ReduceRule> rule_list;
+  ReduceRule tmp_reduce_rule;
+  Rule tmp_rule;
+  vector<NodeType> vector_rule;
+
+  void setRule() {
+    tmp_rule.setRule(vector_rule);
+    tmp_reduce_rule.rules.push_back(tmp_rule);
+  }
+
+  void assignRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = assignopT;
+    vector_rule = {varT, assignT, exprT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void skobeRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = exprT;
+    vector_rule = {skobeopenT, exprT, skobecloseT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void numvarExprRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = exprT;
+    vector_rule = {numvarT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void plusMinusRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = exprT;
+    vector_rule = {exprT, plusminusT, exprT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void mulDivRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = exprT;
+    vector_rule = {exprT, muldivT, exprT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void singleMinusRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = exprT;
+    vector_rule = {singleminusT, exprT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void numvarRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = numvarT;
+    vector_rule = {numberT};
+    setRule();
+    vector_rule = {varT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void setRules() {
+    numvarRule();
+    singleMinusRule();
+    mulDivRule();
+    plusMinusRule();
+    numvarExprRule();
+    skobeRule();
+    assignRule();
+  }
+
+  struct SelectedLexeme {
+    Lexeme<T> lexeme;
+    NodeType node_type;
+  };
+
+  TDynamicQueue<Lexeme<T>> qe;
+  SelectedLexeme selected_lexeme;
+  using Node = typename TSolveTree<T>::Node;
+
+  void defineNode() {
+    switch (selected_lexeme.lexeme.Type) {
+    case number:
+      selected_lexeme.node_type = numberT;
+      break;
+    case single_operation:
+      selected_lexeme.node_type = singleminusT;
+      break;
+    case binary_operation:
+      if (selected_lexeme.lexeme.Text == "+" ||
+          selected_lexeme.lexeme.Text == "-")
+        selected_lexeme.node_type = plusminusT;
+      if (selected_lexeme.lexeme.Text == "*" ||
+          selected_lexeme.lexeme.Text == "/")
+        selected_lexeme.node_type = muldivT;
+      break;
+    case skobe:
+      if (selected_lexeme.lexeme.Text == "(")
+        selected_lexeme.node_type = skobeopenT;
+      if (selected_lexeme.lexeme.Text == ")")
+        selected_lexeme.node_type = skobecloseT;
+      break;
+    case variable:
+      selected_lexeme.node_type = varT;
+      break;
+    case assign:
+      selected_lexeme.node_type = assignT;
+      break;
+    case semicolon:
+      selected_lexeme.node_type = scT;
+      break;
+    case special_word:
+      if (selected_lexeme.lexeme.Text == "begin")
+        selected_lexeme.node_type = beginT;
+      if (selected_lexeme.lexeme.Text == "end")
+        selected_lexeme.node_type = endT;
+      if (selected_lexeme.lexeme.Text == "while")
+        selected_lexeme.node_type = whileT;
+      break;
+    case condition:
+      selected_lexeme.node_type = condT;
+      break;
+    default:
+      break;
+    }
+  }
+
+  bool isReduce(TDynamicStack<Node*> st) {
+
+  }
+
+  void Shift(TDynamicStack<Node*>& st) {
+    selected_lexeme.lexeme = qe.Top();
+    defineNode();
+    Node* tmp = new Node(selected_lexeme);
+    st.Push(tmp);
+    qe.Pop();
+  }
+
+  void Reduce(TDynamicStack<Node*>& st) {
+    size_t size = st.Size();
+    vector<NodeType> tokens;
+
+  }
+
+public:
+  ITreeMaker(TArith<T> &_tarith) {
+    this->tarith = &_tarith;
+    setRules();
+  }
+  void Do() {
+    qe = this->lexems_stream_int();
+    TDynamicStack<Node*> st;
+    while (!qe.isEmpty() || st.Size() != 1) {
+      if (qe.isEmpty()) {
+        while (!st.Size() != 1)
+          Reduce(st);
+      } else {
+        if (isReduce())
+          Reduce(st);
+        else
+          Shift(st);
+      }
+    }
+
+    if (!st.isEmpty())
+      this->solve_tree().root = st.Top();
   }
 };

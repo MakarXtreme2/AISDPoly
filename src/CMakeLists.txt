@@ -1,5 +1,5 @@
-set(projlibs tstack tqueue tarith tcomp tlist tpoly ttree titertree lexeme)
+set(projlibs tstack tqueue tarith tcomp tlist tpoly ttree titertree lexeme trule)
 foreach(projlib IN LISTS projlibs)
   add_library(${projlib} STATIC ${projlib}.cpp "${ARITHS_INCLUDE}/${projlib}.h")
 endforeach()
-target_link_libraries(tarith tstack tqueue tcomp tlist tpoly ttree titertree lexeme)
+target_link_libraries(tarith tstack tqueue tcomp tlist tpoly ttree titertree lexeme trule)

@@ -26,11 +26,26 @@ class TSolveTree {
     Lexeme<T> lexeme = Lexeme<T>();
     size_t num_of_nodes = 0;
     Node** nodes = nullptr;
+    NodeType nodetype = numberT;
     T result = T();
 
     Node(Lexeme<T> _lexeme = Lexeme<T>(), size_t _num_of_nodes = 0) :
       lexeme(_lexeme),
       num_of_nodes(_num_of_nodes)
+    {
+      if (num_of_nodes != 0)
+        nodes = new Node*[num_of_nodes];
+    }
+
+    Node(Lexeme<T> _lexeme = Lexeme<T>(), NodeType _nodetype = numberT) :
+      lexeme(_lexeme), nodetype(_nodetype) {}
+
+    Node(Lexeme<T> _lexeme = Lexeme<T>(),
+         NodeType _nodetype = numberT,
+         size_t _num_of_nodes = 0) :
+           lexeme(_lexeme),
+           num_of_nodes(_num_of_nodes),
+           nodetype(_nodetype)
     {
       if (num_of_nodes != 0)
         nodes = new Node*[num_of_nodes];
@@ -58,6 +73,13 @@ class TSolveTree {
 
     ~Node() {
       delete[] nodes;
+    }
+
+    void setNodes(size_t num_nodes) {
+      if (nodes)
+        delete[] nodes;
+      num_of_nodes = num_nodes;
+      nodes = new Node*[num_of_nodes];
     }
 
     void Do() {

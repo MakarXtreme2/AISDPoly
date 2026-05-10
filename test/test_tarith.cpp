@@ -443,7 +443,7 @@ TEST(Translator, ilexemetranslator_can_read) {
 TEST(Translator, isetcorrect_work_good) {
   string str = "x = 0;               \
                 y = 0;               \
-                while (x <= 2)       \
+                while (x <> 2)       \
                 begin                \
                   x = -x + 1;        \
                   y = y + ( (- 5));  \
@@ -480,7 +480,7 @@ TEST(Translator, isetcorrect_work_good) {
   qe.Pop();
   EXPECT_EQ(qe.Top().Type, variable);
   qe.Pop();
-  EXPECT_EQ(qe.Top().Text, "<=");
+  EXPECT_EQ(qe.Top().Text, "<>");
   qe.Pop();
   EXPECT_EQ(qe.Top().Type, number);
   qe.Pop();
