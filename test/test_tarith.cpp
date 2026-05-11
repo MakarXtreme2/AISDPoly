@@ -504,6 +504,7 @@ TEST(Translator, tree_light_build_correct) {
   arth.AddHandler(hand2);
   arth.LaunchAllHandlers();
   arth.printLexems();
+  arth.printFullLexems();
   arth.AddHandler(hand3);
   arth.LaunchHandler(2);
   arth.SolveTree().printTLR();

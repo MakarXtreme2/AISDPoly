@@ -1602,6 +1602,11 @@ class ITreeMaker : public IHandler<T> {
     tmp_reduce_rule.rules.push_back(tmp_rule);
   }
 
+  void printRules() {
+    for (size_t i = 0; i < rule_list.size(); ++i)
+      cout << rule_list[i] << endl;
+  }
+
   void assignRule() {
     tmp_reduce_rule.rules.clear();
     tmp_reduce_rule.term = assignopT;
@@ -1800,7 +1805,7 @@ class ITreeMaker : public IHandler<T> {
       v_shift.push_back(st.Top()->nodetype);
       v_reduce.push_back(st.Top()->nodetype);
       st.Pop();
-      tmp_rulepos = isSetRule(v_reduce);
+      tmp_rulepos = isFullSetRule(v_reduce);
       if (tmp_rulepos.pos != -1)
         rule_reduce = tmp_rulepos;
       tmp_rulepos = isDirectSetRule(v_shift);
@@ -1808,10 +1813,13 @@ class ITreeMaker : public IHandler<T> {
         rule_shift = tmp_rulepos;
     }
     cout << "rule_shift.pos = " << rule_shift.pos << ", rule_reduce.pos = " << rule_reduce.pos << endl;
+    printRules();
     if (rule_shift.pos == -1 && rule_reduce.pos == -1)
       return false;
     if (rule_shift.pos == -1) {
       return true;
+    } else if (rule_reduce.pos == -1) {
+      return false;
     } else if (rule_shift.pos <= rule_reduce.pos) {
       return false;
     }

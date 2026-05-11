@@ -1,4 +1,5 @@
 #include "trule.h"
+#include "lexeme.h"
 
 bool Rule::isSet(std::vector<NodeType> other_tokens) {
   if (tokens.size() < other_tokens.size())
@@ -82,4 +83,19 @@ Rule ReduceRule::isFullDirectSet(std::vector<NodeType> other_tokens) {
       return rules[i];
   }
   return tmp;
+}
+
+ostream& operator<<(ostream& out, Rule& rule) {
+  for (size_t i = 0; i < rule.tokens.size() - 1; ++i)
+    out << nodetypeToStr(rule.tokens[i]) << " ";
+  out << nodetypeToStr(rule.tokens[rule.tokens.size() - 1]);
+  return out;
+}
+
+ostream& operator<<(ostream& out, ReduceRule& rc_rule) {
+  out << nodetypeToStr(rc_rule.term) << ": ";
+  for (size_t i = 0; i < rc_rule.rules.size() - 1; ++i)
+    out << rc_rule.rules[i] << " | ";
+  out << rc_rule.rules[rc_rule.rules.size() - 1];
+  return out;
 }

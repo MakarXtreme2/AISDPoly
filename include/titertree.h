@@ -46,9 +46,12 @@ class TSolveTree {
 
     Node(const Node& other) {
       lexeme = other.lexeme;
+      nodetype = other.nodetype;
       num_of_nodes = other.num_of_nodes;
       if (num_of_nodes != 0)
         nodes = new Node*[num_of_nodes];
+      for (size_t i = 0; i < num_of_nodes; ++i)
+        nodes[i] = nullptr;
     }
 
     Node& operator=(const Node& other) {
@@ -59,13 +62,15 @@ class TSolveTree {
         num_of_nodes = other.num_of_nodes;
         nodes = new Node*[num_of_nodes];
       }
+      nodetype = other.nodetype;
       lexeme = other.lexeme;
       for (size_t i = 0; i < num_of_nodes; ++i)
         nodes[i] = nullptr;
     }
 
     ~Node() {
-      delete[] nodes;
+      if (num_of_nodes != 0)
+        delete[] nodes;
     }
 
     void setNodes(size_t num_nodes) {
@@ -163,6 +168,51 @@ class TSolveTree {
 
   };
 
+  void Copy(const TSolveTree<T>& other) {
+    TDynamicStack<Node*> other_stack;
+    TDynamicStack<Node*> tail_stack;
+    TDynamicStack<int> op_stack;
+    Node* other_tmp = other.root;
+    Node* tmp = nullptr;
+    int op;
+    if (other.root != nullptr) {
+      root = new Node(*other_tmp);
+    } else {
+      root = nullptr;
+      return;
+    }
+    tmp = root;
+    for (int i = 0; i < other_tmp->num_of_nodes; ++i) {
+      if (other_tmp->nodes[i]) {
+        other_stack.Push(other_tmp->nodes[i]);
+        op_stack.Push(i);
+      }
+    }
+    while (!other_stack.isEmpty()) {
+      other_tmp = other_stack.Top();
+      other_stack.Pop();
+      op = op_stack.Top();
+      op_stack.Pop();
+      while (op == -1 && !op_stack.isEmpty()) {
+        tmp = tail_stack.Top();
+        tail_stack.Pop();
+        op = op_stack.Top();
+        op_stack.Pop();
+      }
+      if (op != -1) {
+        tmp->nodes[op] = new Node(*other_tmp);
+        tail_stack.Push(tmp);
+        tmp = tmp->nodes[op];
+        op_stack.Push(-1);
+      }
+      for (int i = 0; i < other_tmp->num_of_nodes; ++i) {
+        if (other_tmp->nodes[i]) {
+          other_stack.Push(other_tmp->nodes[i]);
+          op_stack.Push(i);
+        }
+      }
+    }
+  }
 
   Node* root;
 
@@ -173,6 +223,16 @@ public:
   friend ITreeMaker<T>;
 
   TSolveTree() : root(nullptr) {}
+  TSolveTree(TSolveTree<T>& other) {
+    Copy(other);
+  }
+
+  TSolveTree<T>& operator=(TSolveTree<T>& other) {
+    if (this == &other)
+      throw out_of_range("SelfAssign");
+    Clear();
+    Copy(other);
+  }
 
   void printTLR() {
     if (root == nullptr)

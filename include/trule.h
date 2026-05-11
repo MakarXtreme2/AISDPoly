@@ -33,6 +33,8 @@ public:
 
   void setInvalid() { valid = false; }
   bool isValid() { return valid; }
+
+  friend ostream& operator<<(ostream& out, Rule& rule);
 };
 
 struct ReduceRule {
@@ -47,4 +49,6 @@ struct ReduceRule {
   Rule isFullSet(std::vector<NodeType> other_tokens);
   Rule isDirectSet(std::vector<NodeType> other_tokens);
   Rule isFullDirectSet(std::vector<NodeType> other_tokens);
+
+  friend ostream& operator<<(ostream& out, ReduceRule& rc_rule);
 };
