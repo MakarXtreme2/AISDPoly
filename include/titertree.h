@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "tarith.h"
 #include "tstack.h"
 #include "tqueue.h"
 #include "ttree.h"
@@ -17,6 +18,9 @@ template <typename T>
 class IHandler;
 
 template <typename T>
+class ITreeMaker;
+
+template <typename T>
 class TSolveTree {
 
   TableAVL<string, T> table;
@@ -28,17 +32,6 @@ class TSolveTree {
     Node** nodes = nullptr;
     NodeType nodetype = numberT;
     T result = T();
-
-    Node(Lexeme<T> _lexeme = Lexeme<T>(), size_t _num_of_nodes = 0) :
-      lexeme(_lexeme),
-      num_of_nodes(_num_of_nodes)
-    {
-      if (num_of_nodes != 0)
-        nodes = new Node*[num_of_nodes];
-    }
-
-    Node(Lexeme<T> _lexeme = Lexeme<T>(), NodeType _nodetype = numberT) :
-      lexeme(_lexeme), nodetype(_nodetype) {}
 
     Node(Lexeme<T> _lexeme = Lexeme<T>(),
          NodeType _nodetype = numberT,
@@ -170,14 +163,69 @@ class TSolveTree {
 
   };
 
+
   Node* root;
 
 public:
 
   friend TMaker<T>;
   friend IHandler<T>;
+  friend ITreeMaker<T>;
 
   TSolveTree() : root(nullptr) {}
+
+  void printTLR() {
+    if (root == nullptr)
+      return;
+    TDynamicStack<Node*> stk;
+    TDynamicStack<long long> tst;
+    TDynamicStack<int> sst;
+    stk.Push(root);
+    tst.Push(0);
+    sst.Push(0);
+    cout << "----- Tree -----\n\n";
+    while (!stk.isEmpty()) {
+      Node* tmp = stk.Top();
+      stk.Pop();
+      long long h = tst.Top();
+      int num = sst.Top();
+      sst.Pop();
+      tst.Pop();
+      for (long long i = 0; i < h; i++)
+        cout << '\t';
+      cout << num << ": " << nodetypeToStr(tmp->nodetype) << endl;
+      for (int i = tmp->num_of_nodes - 1; i >= 0; --i) {
+        if (tmp->nodes[i]) {
+          stk.Push(tmp->nodes[i]);
+          tst.Push(h + 1);
+          sst.Push(i);
+        }
+      }
+    }
+    cout << endl;
+  }
+
+  void Clear() {
+    TDynamicStack<Node*> st;
+    if (root == nullptr)
+      return;
+    Node* tmp = root;
+    st.Push(tmp);
+    while (!st.isEmpty()) {
+      tmp = st.Top();
+      st.Pop();
+      for (int i = 0; i < tmp->num_of_nodes; ++i) {
+        if (tmp->nodes[i])
+          st.Push(tmp->nodes[i]);
+      }
+      delete tmp;
+    }
+    root = nullptr;
+  }
+
+  ~TSolveTree() {
+    Clear();
+  }
 
 
 };

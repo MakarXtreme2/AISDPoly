@@ -49,3 +49,6 @@ enum NodeType {
   cycleT,
   progT
 };
+
+
+string nodetypeToStr(NodeType node_type);

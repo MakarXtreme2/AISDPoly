@@ -493,3 +493,18 @@ TEST(Translator, isetcorrect_work_good) {
   qe.Pop();
   EXPECT_EQ(qe.Top().Type, single_operation);
 }
+
+TEST(Translator, tree_light_build_correct) {
+  string str = "x = (x + 2) * y";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.LaunchAllHandlers();
+  arth.printLexems();
+  arth.AddHandler(hand3);
+  arth.LaunchHandler(2);
+  arth.SolveTree().printTLR();
+}

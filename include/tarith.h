@@ -1661,18 +1661,23 @@ class ITreeMaker : public IHandler<T> {
   }
 
   void setRules() {
-    numvarRule();
     singleMinusRule();
     mulDivRule();
     plusMinusRule();
     numvarExprRule();
     skobeRule();
     assignRule();
+    numvarRule();
   }
 
   struct SelectedLexeme {
     Lexeme<T> lexeme;
     NodeType node_type;
+  };
+
+  struct RulePos {
+    Rule rule;
+    int pos;
   };
 
   TDynamicQueue<Lexeme<T>> qe;
@@ -1726,22 +1731,126 @@ class ITreeMaker : public IHandler<T> {
     }
   }
 
-  bool isReduce(TDynamicStack<Node*> st) {
+  RulePos isSetRule(vector<NodeType> token_kit) {
+    RulePos tmp;
+    Rule tmpr;
+    tmpr.setInvalid();
+    tmp.pos = -1;
+    for (int i = 0; i < rule_list.size(); ++i) {
+      tmpr = rule_list[i].isSet(token_kit);
+      if (tmpr.isValid()) {
+        tmp.pos = i;
+        break;
+      }
+    }
+    tmp.rule = tmpr;
+    return tmp;
+  }
 
+  RulePos isFullSetRule(vector<NodeType> token_kit) {
+    RulePos tmp;
+    Rule tmpr;
+    tmpr.setInvalid();
+    tmp.pos = -1;
+    for (int i = 0; i < rule_list.size(); ++i) {
+      tmpr = rule_list[i].isFullSet(token_kit);
+      if (tmpr.isValid()) {
+        tmp.pos = i;
+        break;
+      }
+    }
+    tmp.rule = tmpr;
+    return tmp;
+  }
+
+  RulePos isDirectSetRule(vector<NodeType> token_kit) {
+    RulePos tmp;
+    Rule tmpr;
+    tmpr.setInvalid();
+    tmp.pos = -1;
+    for (int i = 0; i < rule_list.size(); ++i) {
+      tmpr = rule_list[i].isDirectSet(token_kit);
+      if (tmpr.isValid()) {
+        tmp.pos = i;
+        break;
+      }
+    }
+    tmp.rule = tmpr;
+    return tmp;
+  }
+
+  bool isReduce(TDynamicStack<Node*> st) {
+    vector<NodeType> v_reduce, v_shift;
+    RulePos rule_shift = {Rule(), -1};
+    RulePos rule_reduce = {Rule(), -1};
+    RulePos tmp_rulepos;
+    if (st.isEmpty())
+      return false;
+    TDynamicStack<Node*> tmp = st;
+    while (!tmp.isEmpty()) {
+      cout << nodetypeToStr(tmp.Top()->nodetype) << " ";
+      tmp.Pop();
+    }
+    cout << endl;
+    cout << "qe.Top() = " << qe.Top().Text << endl;
+    selected_lexeme.lexeme = qe.Top();
+    defineNode();
+    v_shift.push_back(selected_lexeme.node_type);
+    while (!st.isEmpty()) {
+      v_shift.push_back(st.Top()->nodetype);
+      v_reduce.push_back(st.Top()->nodetype);
+      st.Pop();
+      tmp_rulepos = isSetRule(v_reduce);
+      if (tmp_rulepos.pos != -1)
+        rule_reduce = tmp_rulepos;
+      tmp_rulepos = isDirectSetRule(v_shift);
+      if (tmp_rulepos.pos != -1)
+        rule_shift = tmp_rulepos;
+    }
+    cout << "rule_shift.pos = " << rule_shift.pos << ", rule_reduce.pos = " << rule_reduce.pos << endl;
+    if (rule_shift.pos == -1 && rule_reduce.pos == -1)
+      return false;
+    if (rule_shift.pos == -1) {
+      return true;
+    } else if (rule_shift.pos <= rule_reduce.pos) {
+      return false;
+    }
+    return true;
   }
 
   void Shift(TDynamicStack<Node*>& st) {
     selected_lexeme.lexeme = qe.Top();
     defineNode();
-    Node* tmp = new Node(selected_lexeme);
+    Node* tmp = new Node(selected_lexeme.lexeme,
+                         selected_lexeme.node_type);
     st.Push(tmp);
     qe.Pop();
   }
 
   void Reduce(TDynamicStack<Node*>& st) {
-    size_t size = st.Size();
     vector<NodeType> tokens;
-
+    RulePos rule_pos = {Rule(), -1};
+    RulePos tmp_rulepos;
+    int size_of_tokens;
+    TDynamicStack<Node*> tmp_st = st;
+    while (!tmp_st.isEmpty()) {
+      tokens.push_back(tmp_st.Top()->nodetype);
+      tmp_st.Pop();
+      tmp_rulepos = isFullSetRule(tokens);
+      if (tmp_rulepos.pos != -1)
+        rule_pos = tmp_rulepos;
+    }
+    if (rule_pos.pos != -1) {
+      int size_rule = rule_pos.rule.countOfTokens();
+      Node* tmp = new Node(Lexeme<T>(),
+                           rule_list[rule_pos.pos].term,
+                           size_rule);
+      for (int i = size_rule - 1; i >= 0; --i) {
+        tmp->nodes[i] = st.Top();
+        st.Pop();
+      }
+      st.Push(tmp);
+    }
   }
 
 public:
@@ -1753,14 +1862,21 @@ public:
     qe = this->lexems_stream_int();
     TDynamicStack<Node*> st;
     while (!qe.isEmpty() || st.Size() != 1) {
+      cout << "Hello\n";
       if (qe.isEmpty()) {
-        while (!st.Size() != 1)
+        while (st.Size() != 1) {
+          cout << "Reduce: stack_size = " << st.Size() << endl;
           Reduce(st);
+        }
       } else {
-        if (isReduce())
+        if (isReduce(st)) {
+          cout << "Reduce\n";
           Reduce(st);
-        else
+        }
+        else {
+          cout << "Shift\n";
           Shift(st);
+        }
       }
     }
 

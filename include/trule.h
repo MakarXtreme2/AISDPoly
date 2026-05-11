@@ -17,6 +17,8 @@ public:
 
   bool isSet(std::vector<NodeType> other_tokens);
   bool isFullSet(std::vector<NodeType> other_tokens);
+  bool isDirectSet(std::vector<NodeType> other_tokens);
+  bool isFullDirectSet(std::vector<NodeType> other_tokens);
 
   void setRule(std::vector<NodeType> _tokens, std::vector<int> _positions) {
     tokens = _tokens;
@@ -26,6 +28,8 @@ public:
   void setRule(std::vector<NodeType> _tokens) {
     tokens = _tokens;
   }
+
+  int countOfTokens() { return tokens.size(); }
 
   void setInvalid() { valid = false; }
   bool isValid() { return valid; }
@@ -41,4 +45,6 @@ struct ReduceRule {
 
   Rule isSet(std::vector<NodeType> other_tokens);
   Rule isFullSet(std::vector<NodeType> other_tokens);
+  Rule isDirectSet(std::vector<NodeType> other_tokens);
+  Rule isFullDirectSet(std::vector<NodeType> other_tokens);
 };
