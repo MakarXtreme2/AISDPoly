@@ -1607,6 +1607,30 @@ class ITreeMaker : public IHandler<T> {
       cout << rule_list[i] << endl;
   }
 
+  void codeblock2Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = codeblockT;
+    vector_rule = {lineT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void codeblock1Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = codeblockT;
+    vector_rule = {codeblockT, lineT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void lineRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = lineT;
+    vector_rule = {assignopT, scT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
   void assignRule() {
     tmp_reduce_rule.rules.clear();
     tmp_reduce_rule.term = assignopT;
@@ -1673,6 +1697,9 @@ class ITreeMaker : public IHandler<T> {
     skobeRule();
     assignRule();
     numvarRule();
+    lineRule();
+    codeblock1Rule();
+    codeblock2Rule();
   }
 
   struct SelectedLexeme {

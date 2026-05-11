@@ -240,6 +240,7 @@ public:
     TDynamicStack<Node*> stk;
     TDynamicStack<long long> tst;
     TDynamicStack<int> sst;
+    TDynamicStack<long long> tmp_sst;
     stk.Push(root);
     tst.Push(0);
     sst.Push(0);
@@ -251,8 +252,23 @@ public:
       int num = sst.Top();
       sst.Pop();
       tst.Pop();
-      for (long long i = 0; i < h; i++)
-        cout << '\t';
+      for (long long i = 0; i < h - 1; i++) {
+        bool f = false;
+        tmp_sst = tst;
+        while (!tmp_sst.isEmpty()) {
+          if (tmp_sst.Top() == i + 1) {
+            f = true;
+            break;
+          }
+          tmp_sst.Pop();
+        }
+        if (f)
+          cout << "|      ";
+        else
+          cout << "       ";
+      }
+      if (h > 0)
+        cout << "|----> ";
       cout << num << ": " << nodetypeToStr(tmp->nodetype) << endl;
       for (int i = tmp->num_of_nodes - 1; i >= 0; --i) {
         if (tmp->nodes[i]) {

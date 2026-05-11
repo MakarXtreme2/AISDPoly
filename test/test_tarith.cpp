@@ -509,3 +509,21 @@ TEST(Translator, tree_light_build_correct) {
   arth.LaunchHandler(2);
   arth.SolveTree().printTLR();
 }
+
+TEST(Translator, tree_medium_build_correct) {
+  string str = "x = (x + 2) * y;            \
+                y = (x + 1) + 2 * (x + y);  \
+                z = (x + y + x) * 2;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.LaunchAllHandlers();
+  arth.printLexems();
+  arth.printFullLexems();
+  arth.AddHandler(hand3);
+  arth.LaunchHandler(2);
+  arth.SolveTree().printTLR();
+}
