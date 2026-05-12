@@ -1612,6 +1612,8 @@ class ITreeMaker : public IHandler<T> {
     tmp_reduce_rule.term = codeblockT;
     vector_rule = {lineT};
     setRule();
+    vector_rule = {cycleT};
+    setRule();
     rule_list.push_back(tmp_reduce_rule);
   }
 
@@ -1619,6 +1621,32 @@ class ITreeMaker : public IHandler<T> {
     tmp_reduce_rule.rules.clear();
     tmp_reduce_rule.term = codeblockT;
     vector_rule = {codeblockT, lineT};
+    setRule();
+    vector_rule = {codeblockT, cycleT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void cycle3Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = cycleT;
+    vector_rule = {whileT, conditionT, lineT, codeblockT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void cycle2Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = cycleT;
+    vector_rule = {whileT, conditionT, beginT, codeblockT, endT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void cycle1Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = cycleT;
+    vector_rule = {whileT, conditionT, beginT, codeblockT, endT, codeblockT};
     setRule();
     rule_list.push_back(tmp_reduce_rule);
   }
@@ -1635,6 +1663,18 @@ class ITreeMaker : public IHandler<T> {
     tmp_reduce_rule.rules.clear();
     tmp_reduce_rule.term = assignopT;
     vector_rule = {varT, assignT, exprT};
+    setRule();
+    vector_rule = {varT, assignT, conditionT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void conditionRule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = conditionT;
+    vector_rule = {exprT, condT, exprT};
+    setRule();
+    vector_rule = {skobeopenT, conditionT, skobecloseT};
     setRule();
     rule_list.push_back(tmp_reduce_rule);
   }
@@ -1690,16 +1730,19 @@ class ITreeMaker : public IHandler<T> {
   }
 
   void setRules() {
+    codeblock1Rule();
+    codeblock2Rule();
+    lineRule();
     singleMinusRule();
     mulDivRule();
     plusMinusRule();
     numvarExprRule();
     skobeRule();
+    conditionRule();
     assignRule();
     numvarRule();
-    lineRule();
-    codeblock1Rule();
-    codeblock2Rule();
+    cycle1Rule();
+    cycle2Rule();
   }
 
   struct SelectedLexeme {
@@ -1815,6 +1858,7 @@ class ITreeMaker : public IHandler<T> {
     vector<NodeType> v_reduce, v_shift;
     RulePos rule_shift = {Rule(), -1};
     RulePos rule_reduce = {Rule(), -1};
+    RulePos rule_reduce_set = {Rule(), -1};
     RulePos tmp_rulepos;
     if (st.isEmpty())
       return false;
@@ -1828,26 +1872,42 @@ class ITreeMaker : public IHandler<T> {
     selected_lexeme.lexeme = qe.Top();
     defineNode();
     v_shift.push_back(selected_lexeme.node_type);
+    tmp_rulepos = isDirectSetRule(v_shift);
+    if (tmp_rulepos.pos != -1) {
+      rule_shift = tmp_rulepos;
+    }
     while (!st.isEmpty()) {
       v_shift.push_back(st.Top()->nodetype);
       v_reduce.push_back(st.Top()->nodetype);
       st.Pop();
       tmp_rulepos = isFullSetRule(v_reduce);
-      if (tmp_rulepos.pos != -1)
+      if (tmp_rulepos.pos != -1) {
         rule_reduce = tmp_rulepos;
+      }
+      /*tmp_rulepos = isSetRule(v_reduce);
+      if (tmp_rulepos.pos != -1) {
+        rule_reduce_set = tmp_rulepos;
+      }*/
       tmp_rulepos = isDirectSetRule(v_shift);
-      if (tmp_rulepos.pos != -1)
+      if (tmp_rulepos.pos != -1) {
         rule_shift = tmp_rulepos;
+      }
     }
     cout << "rule_shift.pos = " << rule_shift.pos << ", rule_reduce.pos = " << rule_reduce.pos << endl;
-    printRules();
+    cout << "rule_reduce_set.pos = " << rule_reduce_set.pos << endl;
     if (rule_shift.pos == -1 && rule_reduce.pos == -1)
       return false;
     if (rule_shift.pos == -1) {
       return true;
-    } else if (rule_reduce.pos == -1) {
+    }
+    if (rule_reduce.pos == -1) {
       return false;
-    } else if (rule_shift.pos <= rule_reduce.pos) {
+    }
+    /*if (rule_reduce.pos != -1 && rule_reduce_set.pos != -1) {
+      if (rule_reduce_set.pos < rule_reduce.pos)
+        return false;
+    }*/
+    if (rule_shift.pos <= rule_reduce.pos) {
       return false;
     }
     return true;
@@ -1900,7 +1960,13 @@ public:
       cout << "Hello\n";
       if (qe.isEmpty()) {
         while (st.Size() != 1) {
+          TDynamicStack<Node*> tmp_st = st;
           cout << "Reduce: stack_size = " << st.Size() << endl;
+          while (!tmp_st.isEmpty()) {
+            cout << nodetypeToStr(tmp_st.Top()->nodetype) << " ";
+            tmp_st.Pop();
+          }
+          cout << endl;
           Reduce(st);
         }
       } else {
