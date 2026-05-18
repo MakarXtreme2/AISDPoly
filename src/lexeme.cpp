@@ -44,6 +44,10 @@ string nodetypeToStr(NodeType node_type) {
     return "cycle";
   case progT:
     return "prog";
+  case ifT:
+    return "if";
+  case ifopT:
+    return "ifop";
   default:
     return "NULL";
   }

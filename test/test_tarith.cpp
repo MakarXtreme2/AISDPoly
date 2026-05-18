@@ -560,3 +560,100 @@ TEST(Translator, tree_hard_build_correct) {
   arth.LaunchHandler(2);
   arth.SolveTree().printTLR();
 }
+
+TEST(Translator, tree_hard_single_build_correct) {
+  string str = "x = (x + 2) * y;            \
+                while (a > 2)               \
+                  a = a + 2;                \
+                b = a - 3;                  \
+                y = (x + 1) + 2 * (x + y);  \
+                z = (x + y + x) * 2;        \
+                while (a < b + 2) begin a = b - 3;\
+                x = 5 + 2;                  \
+                y = 2 + 7;end";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.LaunchAllHandlers();
+  arth.printLexems();
+  arth.printFullLexems();
+  arth.AddHandler(hand3);
+  arth.LaunchHandler(2);
+  arth.SolveTree().printTLR();
+}
+
+TEST(Translator, tree_hard_single_if_build_correct) {
+  string str = "x = (x + 2) * y;            \
+                if (a > 2)                  \
+                  a = a + 2;                \
+                b = a - 3;                  \
+                y = (x + 1) + 2 * (x + y);  \
+                if (a - b > c)              \
+                begin                       \
+                  b = a + c;                \
+                  c = d + e;                \
+                end                         \
+                z = (x + y + x) * 2;        \
+                while (a < b + 2) begin a = b - 3;\
+                x = 5 + 2;                  \
+                y = 2 + 7;end               \
+                if (s - d < 2)              \
+                  x = 2 + 3;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.LaunchAllHandlers();
+  arth.printLexems();
+  arth.printFullLexems();
+  arth.AddHandler(hand3);
+  arth.LaunchHandler(2);
+  arth.SolveTree().printTLR();
+}
+
+TEST(Translator, tree_can_count_easy) {
+  string str = "x = 5;                      \
+                y = x + x + 2;              \
+                z = y + x + 10;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  IIterWalker<int> hand4(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.AddHandler(hand3);
+  arth.AddHandler(hand4);
+  arth.LaunchAllHandlers();
+  arth.SolveTree().printTLR();
+  arth.Table().printLTR();
+}
+
+TEST(Translator, tree_can_count_medium) {
+  string str = "x = 5;                      \
+                i = 0;                      \
+                while (i < 4)               \
+                begin                       \
+                  x = x + x;                \
+                  i = i + 1;                \
+                end                         \
+                y = x + x + 2;              \
+                z = y + x + 10;";
+  TArith<int> arth(str);
+  ILexemeTranslator<int> hand1(arth);
+  ISetCorrect<int> hand2(arth);
+  ITreeMaker<int> hand3(arth);
+  IIterWalker<int> hand4(arth);
+  arth.AddHandler(hand1);
+  arth.AddHandler(hand2);
+  arth.AddHandler(hand3);
+  arth.AddHandler(hand4);
+  arth.LaunchAllHandlers();
+  arth.SolveTree().printTLR();
+  arth.Table().printLTR();
+}

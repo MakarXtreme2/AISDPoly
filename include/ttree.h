@@ -455,6 +455,8 @@ class TableAVL {
     }
 
     KeyType& operator=(const KeyType& other) {
+      if (this == &other)
+        throw out_of_range("SelfAssign");
       val = other.val;
       return *this;
     }
@@ -500,9 +502,10 @@ public:
   Value* Find(Key key) {
     use_key.key = key;
     KeyType* tmp = avltree.Find(use_key);
-    use_key = *tmp;
-    if (tmp)
+    if (tmp) {
+      use_key = *tmp;
       return &tmp->val;
+    }
     return nullptr;
   }
 

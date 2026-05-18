@@ -79,93 +79,6 @@ class TSolveTree {
       num_of_nodes = num_nodes;
       nodes = new Node*[num_of_nodes];
     }
-
-    void Do() {
-      switch (lexeme.Type) {
-      case number:
-        result = lexeme.Value;
-        break;
-      case single_operation:
-        SingleOperation();
-        break;
-      case binary_operation:
-        BinaryOperation();
-        break;
-      case variable:
-        break;
-      case assign:
-        Assign();
-        break;
-      case semicolon:
-        break;
-      case special_word:
-        break;
-      case condition:
-        Condition();
-        break;
-      default:
-        break;
-      }
-    }
-
-  private:
-
-    void SingleOperation() {
-      switch (lexeme.Text) {
-      case "-":
-        result = -nodes[0]->result;
-        break;
-      default:
-        break;
-      }
-    }
-
-    void BinaryOperation() {
-      switch (lexeme.Text) {
-      case "+":
-        result = nodes[0]->result + nodes[1]->result;
-        break;
-      case "-":
-        result = nodes[0]->result - nodes[1]->result;
-        break;
-      case "*":
-        result = nodes[0]->result * nodes[1]->result;
-        break;
-      case "/":
-        result = nodes[0]->result / nodes[1]->result;
-        break;
-      default:
-        break;
-      }
-    }
-
-    void Assign() {
-      result = nodes[1]->result;
-      //table->Insert(nodes[0]->lexeme.Text, result);
-    }
-
-    void Condition() {
-      switch (lexeme.Text) {
-      case "<":
-        result = nodes[0]->result < nodes[1]->result ? 1 : 0;
-        break;
-      case ">":
-        result = nodes[0]->result > nodes[1]->result ? 1 : 0;
-        break;
-      case "==":
-        result = nodes[0]->result == nodes[1]->result ? 1 : 0;
-        break;
-      case "<=":
-        result = nodes[0]->result <= nodes[1]->result ? 1 : 0;
-        break;
-      case ">=":
-        result = nodes[0]->result >= nodes[1]->result ? 1 : 0;
-        break;
-      default:
-        break;
-      }
-    }
-
   };
 
   void Copy(const TSolveTree<T>& other) {
@@ -216,6 +129,150 @@ class TSolveTree {
 
   Node* root;
 
+  struct StateNode {
+    int state;
+    Node* node;
+  };
+
+  void setStackNode(TDynamicStack<StateNode>& st, Node*& node) {
+    StateNode state_node;
+    state_node.state = 0;
+    switch (node->nodetype) {
+    case numvarT:
+      if (node->nodes[0])
+        state_node.node = node->nodes[0];
+      st.Push(state_node);
+      break;
+    case exprT:
+    case conditionT:
+    case assignopT:
+    case lineT:
+    case codeblockT:
+      for (int i = node->num_of_nodes - 1; i >= 0; --i) {
+        if (node->nodes[i]) {
+          state_node.node = node->nodes[i];
+          st.Push(state_node);
+        }
+      }
+      break;
+    case cycleT:
+    case ifopT:
+      if (node->nodes[1])
+        state_node.node = node->nodes[1];
+      st.Push(state_node);
+      break;
+    default:
+      break;
+    }
+  }
+
+  void doCycle(TDynamicStack<StateNode>& st, Node*& node) {
+    StateNode state_node;
+    state_node.state = 1;
+    state_node.node = node;
+    if (node->nodes[1]->result == 1) {
+      cout << "Sor\n";
+      st.Push(state_node);
+      state_node.node = node->nodes[1];
+      state_node.state = 0;
+      st.Push(state_node);
+      if (node->num_of_nodes == 3 || node->num_of_nodes == 4)
+        state_node.node = node->nodes[2];
+      else
+        state_node.node = node->nodes[3];
+      st.Push(state_node);
+    }
+    else if (node->nodes[1]->result == 0) {
+      state_node.state = 0;
+      if (node->num_of_nodes == 4)
+        state_node.node = node->nodes[3];
+      if (node->num_of_nodes == 6)
+        state_node.node = node->nodes[5];
+      st.Push(state_node);
+    }
+  }
+
+  void doIfOp(TDynamicStack<StateNode>& st, Node*& node) {
+    StateNode state_node;
+    state_node.state = 0;
+    if (node->nodes[1]->result == 1) {
+      if (node->num_of_nodes == 4)
+        state_node.node = node->nodes[3];
+      if (node->num_of_nodes == 6)
+        state_node.node = node->nodes[5];
+      st.Push(state_node);
+
+      if (node->num_of_nodes == 3 || node->num_of_nodes == 4)
+        state_node.node = node->nodes[2];
+      else
+        state_node.node = node->nodes[3];
+      st.Push(state_node);
+    }
+    else if (node->nodes[1]->result == 0) {
+      if (node->num_of_nodes == 4)
+        state_node.node = node->nodes[3];
+      if (node->num_of_nodes == 6)
+        state_node.node = node->nodes[5];
+      st.Push(state_node);
+    }
+  }
+
+  void doOperation(Node*& node) {
+    switch (node->nodetype) {
+    case numberT:
+      node->result = node->lexeme.Value;
+      break;
+    case varT:
+      T* tmp;
+      tmp = table.Find(node->lexeme.Text);
+      if (tmp != nullptr)
+        node->result = *tmp;
+      break;
+    case numvarT:
+      node->result = node->nodes[0]->result;
+      break;
+    case exprT:
+      if (node->num_of_nodes == 1)
+        node->result = node->nodes[0]->result;
+      else if (node->num_of_nodes == 2)
+        node->result = -node->nodes[1]->result;
+      else {
+        if (node->nodes[0]->nodetype == skobeopenT)
+          node->result = node->nodes[1]->result;
+        else if (node->nodes[1]->lexeme.Text == "+")
+          node->result = node->nodes[0]->result + node->nodes[2]->result;
+        else if (node->nodes[1]->lexeme.Text == "-")
+          node->result = node->nodes[0]->result - node->nodes[2]->result;
+        else if (node->nodes[1]->lexeme.Text == "*")
+          node->result = node->nodes[0]->result * node->nodes[2]->result;
+        else if (node->nodes[1]->lexeme.Text == "/")
+          node->result = node->nodes[0]->result / node->nodes[2]->result;
+      }
+      break;
+    case conditionT:
+      if (node->nodes[0]->nodetype == skobeopenT)
+        node->result = node->nodes[1]->result;
+      else if (node->nodes[1]->lexeme.Text == "<")
+        node->result = node->nodes[0]->result < node->nodes[2]->result ? 1 : 0;
+      else if (node->nodes[1]->lexeme.Text == "<=")
+        node->result = node->nodes[0]->result <= node->nodes[2]->result ? 1 : 0;
+      else if (node->nodes[1]->lexeme.Text == ">")
+        node->result = node->nodes[0]->result > node->nodes[2]->result ? 1 : 0;
+      else if (node->nodes[1]->lexeme.Text == ">=")
+        node->result = node->nodes[0]->result >= node->nodes[2]->result ? 1 : 0;
+      else if (node->nodes[1]->lexeme.Text == "==")
+        node->result = node->nodes[0]->result == node->nodes[2]->result ? 1 : 0;
+      else if (node->nodes[1]->lexeme.Text == "<>")
+        node->result = node->nodes[0]->result != node->nodes[2]->result ? 1 : 0;
+      break;
+    case assignopT:
+      table.Insert(node->nodes[0]->lexeme.Text, node->nodes[2]->result);
+      break;
+    default:
+      break;
+    }
+  }
+
 public:
 
   friend TMaker<T>;
@@ -225,6 +282,32 @@ public:
   TSolveTree() : root(nullptr) {}
   TSolveTree(TSolveTree<T>& other) {
     Copy(other);
+  }
+
+  void Solve(TableAVL<string, T>& _table) {
+    TDynamicStack<StateNode> st;
+    StateNode state_node;
+    if (root) {
+      state_node = {0, root};
+      st.Push(state_node);
+    }
+    while (!st.isEmpty()) {
+      state_node = st.Top();
+      st.Pop();
+      if (state_node.state == 0) {
+        state_node.state = 1;
+        st.Push(state_node);
+        setStackNode(st, state_node.node);
+      } else {
+        if (state_node.node->nodetype == cycleT)
+          doCycle(st, state_node.node);
+        else if (state_node.node->nodetype == ifopT)
+          doIfOp(st, state_node.node);
+        else
+          doOperation(state_node.node);
+      }
+    }
+    _table = table;
   }
 
   TSolveTree<T>& operator=(TSolveTree<T>& other) {

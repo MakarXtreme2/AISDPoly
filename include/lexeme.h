@@ -47,6 +47,8 @@ enum NodeType {
   lineT,
   codeblockT,
   cycleT,
+  ifT,
+  ifopT,
   progT
 };
 

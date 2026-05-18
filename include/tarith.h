@@ -1614,6 +1614,8 @@ class ITreeMaker : public IHandler<T> {
     setRule();
     vector_rule = {cycleT};
     setRule();
+    vector_rule = {ifopT};
+    setRule();
     rule_list.push_back(tmp_reduce_rule);
   }
 
@@ -1623,6 +1625,48 @@ class ITreeMaker : public IHandler<T> {
     vector_rule = {codeblockT, lineT};
     setRule();
     vector_rule = {codeblockT, cycleT};
+    setRule();
+    vector_rule = {codeblockT, ifopT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void ifop4Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = ifopT;
+    vector_rule = {ifT, conditionT, codeblockT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void ifop3Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = ifopT;
+    vector_rule = {ifT, conditionT, lineT, codeblockT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void ifop2Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = ifopT;
+    vector_rule = {ifT, conditionT, beginT, codeblockT, endT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void ifop1Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = ifopT;
+    vector_rule = {ifT, conditionT, beginT, codeblockT, endT, codeblockT};
+    setRule();
+    rule_list.push_back(tmp_reduce_rule);
+  }
+
+  void cycle4Rule() {
+    tmp_reduce_rule.rules.clear();
+    tmp_reduce_rule.term = cycleT;
+    vector_rule = {whileT, conditionT, codeblockT};
     setRule();
     rule_list.push_back(tmp_reduce_rule);
   }
@@ -1743,6 +1787,12 @@ class ITreeMaker : public IHandler<T> {
     numvarRule();
     cycle1Rule();
     cycle2Rule();
+    cycle3Rule();
+    cycle4Rule();
+    ifop1Rule();
+    ifop2Rule();
+    ifop3Rule();
+    ifop4Rule();
   }
 
   struct SelectedLexeme {
@@ -1797,6 +1847,8 @@ class ITreeMaker : public IHandler<T> {
         selected_lexeme.node_type = endT;
       if (selected_lexeme.lexeme.Text == "while")
         selected_lexeme.node_type = whileT;
+      if (selected_lexeme.lexeme.Text == "if")
+        selected_lexeme.node_type = ifT;
       break;
     case condition:
       selected_lexeme.node_type = condT;
@@ -1854,6 +1906,23 @@ class ITreeMaker : public IHandler<T> {
     return tmp;
   }
 
+  bool isSpecial(TDynamicStack<Node*> st) {
+    vector<NodeType> v;
+    int i = 0;
+    while (!st.isEmpty() && (i < 3)) {
+      v.push_back(st.Top()->nodetype);
+      st.Pop();
+      i++;
+    }
+    if (i == 3) {
+      if ((v[0] == lineT) &&
+          (v[1] == conditionT) &&
+          (v[2] == whileT || v[2] == ifT))
+        return true;
+    }
+    return false;
+  }
+
   bool isReduce(TDynamicStack<Node*> st) {
     vector<NodeType> v_reduce, v_shift;
     RulePos rule_shift = {Rule(), -1};
@@ -1861,6 +1930,8 @@ class ITreeMaker : public IHandler<T> {
     RulePos rule_reduce_set = {Rule(), -1};
     RulePos tmp_rulepos;
     if (st.isEmpty())
+      return false;
+    if (isSpecial(st))
       return false;
     TDynamicStack<Node*> tmp = st;
     while (!tmp.isEmpty()) {
@@ -1884,10 +1955,6 @@ class ITreeMaker : public IHandler<T> {
       if (tmp_rulepos.pos != -1) {
         rule_reduce = tmp_rulepos;
       }
-      /*tmp_rulepos = isSetRule(v_reduce);
-      if (tmp_rulepos.pos != -1) {
-        rule_reduce_set = tmp_rulepos;
-      }*/
       tmp_rulepos = isDirectSetRule(v_shift);
       if (tmp_rulepos.pos != -1) {
         rule_shift = tmp_rulepos;
@@ -1903,10 +1970,6 @@ class ITreeMaker : public IHandler<T> {
     if (rule_reduce.pos == -1) {
       return false;
     }
-    /*if (rule_reduce.pos != -1 && rule_reduce_set.pos != -1) {
-      if (rule_reduce_set.pos < rule_reduce.pos)
-        return false;
-    }*/
     if (rule_shift.pos <= rule_reduce.pos) {
       return false;
     }
@@ -1983,5 +2046,16 @@ public:
 
     if (!st.isEmpty())
       this->solve_tree().root = st.Top();
+  }
+};
+
+template <typename T>
+class IIterWalker : public IHandler<T> {
+public:
+  IIterWalker(TArith<T> &_tarith) {
+    this->tarith = &_tarith;
+  }
+  void Do() {
+    this->solve_tree().Solve(this->table());
   }
 };
